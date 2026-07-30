@@ -1,12 +1,12 @@
-# Pokéwalker (Apple Health) — a Gen1Recomp mod
+# Pokéwalker (Step Sync) — a Gen1Recomp mod
 
 Your real-world steps become EXP for your Pokémon party — the HeartGold/
-SoulSilver Pokéwalker, except it's the iPhone already in your pocket.
+SoulSilver Pokéwalker, except it's the phone already in your pocket.
 
 A mod for [gen1recomp](https://github.com/bryanthaboi/gen1recomp)
-(the Gen 1 Recompilation Project). Opt-in, data-safe, and dormant on any
-platform that doesn't provide the native step source (see
-[Requirements](#requirements)).
+(the Gen 1 Recompilation Project). Works on **iOS and Android** builds
+that ship the native step bridge. Opt-in, data-safe, and dormant on any
+platform without the bridge (see [Requirements](#requirements)).
 
 ## Install
 
@@ -20,7 +20,22 @@ Grab `pokewalker-<version>.modpkg` from
   app; it installs on next launch.
 
 Then, in the **mod manager → POKEWALKER → options**, turn on **SYNC
-STEPS**. iOS asks for read-only access to your step count the first time.
+STEPS** and approve the system prompt that appears the first time.
+
+### What each platform asks for, and how it counts
+
+- **iOS** — a Health Access sheet requesting **read-only** access to
+  Steps. Step history comes from Apple Health (`HKStatisticsQuery` over
+  `stepCount`), so every step your iPhone or Apple Watch recorded since
+  the last sync is credited — including days you didn't open the game.
+- **Android** — on Android 10+ a **Physical activity** permission prompt
+  (`ACTIVITY_RECOGNITION`); Android 9 and older need no prompt. Steps
+  come straight from the phone's **hardware step counter**, which the OS
+  runs continuously — no Health/Fit app needed, and steps count whether
+  or not the game is running. One caveat: the hardware counter resets
+  when the phone reboots, so steps taken between a reboot and your next
+  sync are not credited (the bridge re-anchors honestly instead of
+  guessing).
 
 ## Options
 
@@ -42,9 +57,9 @@ STEPS**. iOS asks for read-only access to your step count the first time.
 
 ## Requirements
 
-The Lua mod is platform-neutral, but it feeds on a **native step bridge**
-that currently ships in an iOS build of gen1recomp. Without the bridge the
-mod loads and stays dormant — safe to install anywhere.
+The Lua mod is platform-neutral, but it feeds on a **native step
+bridge** that ships in iOS and Android builds of this fork. Without the
+bridge the mod loads and stays dormant — safe to install anywhere.
 
 ### The bridge contract (for porters)
 
@@ -62,10 +77,16 @@ Any platform can light this mod up by providing:
   never delivered twice, and **merge** with an unconsumed pending file
   rather than overwriting it. The mod consumes and deletes the file.
 
-The reference iOS implementation is a small Swift class (HealthKit
-`HKStatisticsQuery` over `stepCount`) exposed to Lua through a one-line
-`wrap_System.cpp` addition. Open an issue here if you're porting the
-bridge (Android: Health Connect / Google Fit would slot straight in).
+Two reference implementations exist:
+
+- **iOS** — a small Swift class (HealthKit `HKStatisticsQuery` over
+  `stepCount`) reached from `wrap_System.cpp` via the ObjC runtime.
+- **Android** — a `GameActivity` method reading the hardware
+  `TYPE_STEP_COUNTER` sensor (cumulative since boot, anchored in
+  SharedPreferences; reboot detection re-anchors without crediting),
+  reached over JNI like love-android's existing SAF picker.
+
+Open an issue here if you're porting the bridge to another platform.
 
 ## Known limitations (v1)
 

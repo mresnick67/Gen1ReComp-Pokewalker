@@ -1,10 +1,10 @@
 -- Sharing metadata (25-community-and-ecosystem.md 3.2).  Read by tooling
 -- and the manager detail pane; never by the loader's merge.
 return {
-  summary = "Real-world steps from Apple Health become EXP for your party.",
+  summary = "Real-world steps become EXP for your party (iOS & Android).",
   author = "mresnick67",
   contact = "https://github.com/mresnick67/Gen1ReComp-Pokewalker",
-  tags = { "mechanic", "ios", "health", "opt-in", "field" },
+  tags = { "mechanic", "ios", "android", "health", "opt-in", "field" },
   differences = {
     changed = {},
     added = {
@@ -16,9 +16,12 @@ return {
         .. "battle end)",
     },
     known = {
-      "needs an iOS build that ships the native Health bridge "
+      "needs an iOS or Android build that ships the native step bridge "
         .. "(love.system.syncHealthSteps); on every other platform the mod "
         .. "loads but stays dormant",
+      "Android counts steps with the hardware step counter: no Health app "
+        .. "needed, but steps between a phone reboot and the next sync are "
+        .. "not credited",
       "level-ups granted while walking do not prompt for new moves and do "
         .. "not trigger level evolutions until the next in-battle level "
         .. "(same as over-leveling with rare candies)",

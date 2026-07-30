@@ -1,7 +1,7 @@
 {
   "id": "pokewalker",
-  "name": "Pokewalker (Apple Health)",
-  "version": "1.0.0",
+  "name": "Pokewalker (Step Sync)",
+  "version": "1.0.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -12,5 +12,5 @@
   "dependencies": [],
   "optional_dependencies": [],
   "conflicts": [],
-  "description": "Your real-world steps (Apple Health) become EXP for your party. Opt-in: enable SYNC STEPS in this mod's options. Needs an iOS build with the Health bridge; dormant elsewhere."
+  "description": "Your real-world steps become EXP for your party. Opt-in: enable SYNC STEPS in this mod's options. Needs an iOS or Android build with the step bridge; dormant elsewhere."
 }

@@ -3,6 +3,20 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.1] - 2026-07-30
+
+### Added
+
+- Android support documentation: the Android build's step bridge counts
+  steps with the hardware step counter (`TYPE_STEP_COUNTER`) — no Health
+  app required. The mod's Lua is unchanged; it simply lights up wherever
+  `love.system.syncHealthSteps` exists.
+
+### Changed
+
+- Renamed to "Pokewalker (Step Sync)"; metadata no longer implies the mod
+  is Apple-only.
+
 ## [1.0.0] - 2026-07-30
 
 ### Added
