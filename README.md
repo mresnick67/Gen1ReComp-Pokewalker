@@ -18,8 +18,8 @@ Which file you need:
 
 | File | Who it's for |
 |---|---|
-| `pokewalker-<version>.zip` | The mod itself (all platforms). Skip it if you use the app build below — it ships the mod pre-installed. |
-| `gen1recomp-android.apk` | **Android**: the full game app with the step bridge *and this mod already inside*. Sideload it and you're done. Or build it yourself (below). |
+| `pokewalker-<version>.zip` | The mod itself (all platforms) — everyone needs this one. |
+| `gen1recomp-android.apk` | **Android**: the full game app with the step bridge. Sideload it, then import the mod zip (mods ship separately so the mod manager can delete and upgrade them). Or build it yourself (below). |
 
 **iOS** follows the same convention as the original project — no
 prebuilt app is distributed; you build it yourself (it's two commands
