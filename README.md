@@ -10,12 +10,20 @@ platform without the bridge (see [Requirements](#requirements)).
 
 ## Install
 
-Grab `pokewalker-<version>.modpkg` from
-[Releases](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases)
-(or use GitHub's *Code → Download ZIP* — the importer handles both), then:
+Everything lives on the
+[Releases page](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases).
+Which file you need:
 
-- **In the launcher:** MODS tab → **Import mod .zip** → pick the file, or
-  drag it onto the window on desktop.
+| File | Who it's for |
+|---|---|
+| `pokewalker-<version>.modpkg` | The mod itself (all platforms). Skip it if you use one of the app builds below — they ship the mod pre-installed. |
+| `gen1recomp-android.apk` | **Android**: the full game app with the step bridge *and this mod already inside*. Sideload it and you're done. |
+| `gen1recomp-ios-dev.ipa` | **iOS**: the full game app with bridge + mod. Dev-signed, so re-sign it for your own device with [AltStore](https://altstore.io)/Sideloadly — or build from source, which is well documented in the fork. |
+
+Installing just the mod into an existing app or desktop build:
+
+- **In the launcher:** MODS tab → **Import mod .zip** → pick the
+  `.modpkg` (it's a normal zip), or drag it onto the window on desktop.
 - **iOS:** you can also drop the zip into the app's folder in the Files
   app; it installs on next launch.
 
@@ -58,8 +66,22 @@ STEPS** and approve the system prompt that appears the first time.
 ## Requirements
 
 The Lua mod is platform-neutral, but it feeds on a **native step
-bridge** that ships in iOS and Android builds of this fork. Without the
-bridge the mod loads and stays dormant — safe to install anywhere.
+bridge** that ships in iOS and Android builds of the fork this mod comes
+from. Without the bridge the mod loads and stays dormant — safe to
+install anywhere.
+
+**Upstream status:** the iOS bridge (with the rest of the fork's iOS
+support) has been proposed to mainline gen1recomp in
+[bryanthaboi/gen1recomp#452](https://github.com/bryanthaboi/gen1recomp/pull/452).
+If that lands, official upstream iOS builds will run this mod as-is.
+
+**Why a bridge at all?** A mod alone genuinely cannot do this. Mods are
+Lua inside the LÖVE runtime: there is no sensor or HealthKit API exposed
+to Lua, and — the hard blocker on Android — reading the step counter on
+Android 10+ requires the `ACTIVITY_RECOGNITION` permission to be
+declared in the APK's manifest, which only a build-time change can do.
+Hence the small native seam, kept to one function so any build can adopt
+it.
 
 ### The bridge contract (for porters)
 
