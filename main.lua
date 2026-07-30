@@ -145,7 +145,8 @@ return function(mod)
     local Strings = require("src.core.Strings")
     local Experience = require("src.battle.Experience")
     local targets = {}
-    if mod.options:get("target") == "party" then
+    local toParty = mod.options:get("target") == "party"
+    if toParty then
       for _, mon in ipairs(party) do targets[#targets + 1] = mon end
     else
       targets[1] = party[1]
@@ -170,8 +171,14 @@ return function(mod)
     mod.log:info("credited %d steps -> %d EXP (%d level-up pages, %d learnable)",
                  steps, total, #pages, #learnQueue)
 
-    table.insert(pages, 1, Strings("You walked %d steps!\nYour party gained %d EXP.",
-                                   steps, total))
+    -- Every \n line must stay within the TextBox's 18-column budget: wrapped
+    -- continuations scroll through without waiting for A, so an over-wide
+    -- report reads as "auto-scrolled to the end" on boot.
+    local gained = toParty
+      and Strings("Your party gained\n%d EXP.", total)
+      or  Strings("%s gained\n%d EXP.", monName(targets[1], data), total)
+    table.insert(pages, 1, gained)
+    table.insert(pages, 1, Strings("You walked\n%d steps!", steps))
     local TextBox = require("src.render.TextBox")
     game.stack:push(TextBox.new(game, table.concat(pages, "\f"), function()
       runLearnQueue(learnQueue, data)

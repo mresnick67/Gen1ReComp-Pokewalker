@@ -96,20 +96,35 @@ T.check(mon.stats.hp > 0 and mon.hp <= mon.stats.hp,
   "stat recalc keeps HP within the new maximum")
 T.check(love.filesystem.read("steps_pending.json") == nil,
   "pending file is consumed exactly once")
-T.check(shown[1] ~= nil and shown[1]:find("You walked 20000 steps", 1, true) ~= nil,
+T.check(shown[1] ~= nil and shown[1]:find("You walked\n20000 steps!", 1, true) ~= nil,
   "walk report opens the credit")
+local leadName = mon.nickname or Data.pokemon[mon.species].name or mon.species
+T.check(shown[1]:find(leadName .. " gained", 1, true) ~= nil,
+  "lead target names the lead mon, not the party")
 T.check(shown[1]:find("\f", 1, true) ~= nil,
   "report pages are \\f-separated so each box waits for A")
+-- 18 is Theme.textBox.maxCols: a wider line soft-wraps, and the wrapped
+-- continuation scrolls through without waiting for A -- the "report
+-- auto-scrolls to the end on boot" bug.
+for line in shown[1]:gmatch("[^\f\n]+") do
+  T.check(#line <= 18, "report line fits the 18-col box: '" .. line .. "'")
+end
 T.eq(#menuCalls, 1, "a full moveset routes through the learn menu")
 T.eq(menuCalls[1].id, "MoveLearnMenu", "the engine's own menu is used")
 T.eq(menuCalls[1].move, "FIX_EMBERISH", "offering the level-7 learnset move")
 T.eq(#mon.moves, 4, "nothing is force-forgotten")
 
 -- A fresh mon with a free slot auto-learns with its own message page.
+-- Switch to the party target: the report wording must follow the option.
 local mon2 = Pokemon.new(Data, "FIXMON_A", 5)
 game.save.party = { mon2 }
+run.loader.modOptions.pokewalker = { enabled = true, target = "party" }
+local shownBefore = #shown
 love.filesystem.write("steps_pending.json", '{"steps": 20000}')
 events:emit("battle.ended", {})
+T.check(shown[shownBefore + 1] ~= nil
+    and shown[shownBefore + 1]:find("Your party gained", 1, true) ~= nil,
+  "party target keeps the party wording")
 local learned = false
 for _, mv in ipairs(mon2.moves) do
   if mv.id == "FIX_EMBERISH" then learned = true end

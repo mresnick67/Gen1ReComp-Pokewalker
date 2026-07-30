@@ -3,6 +3,18 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] - 2026-07-30
+
+### Fixed
+
+- The walk report really stops auto-scrolling now: its lines were wider
+  than the textbox's 18 columns, and wrapped continuation lines scroll
+  through without waiting for A. The report is now two short pages
+  ("You walked / N steps!" then the EXP page), each waiting for input.
+- The EXP page names your lead Pokemon ("PIKACHU gained 500 EXP.") when
+  GIVE EXP TO is set to LEAD MON — the default — instead of always
+  saying "Your party gained".
+
 ## [0.2.0] - 2026-07-30
 
 ### Added
