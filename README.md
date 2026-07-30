@@ -93,10 +93,13 @@ bridge** that ships in iOS and Android builds of the fork this mod comes
 from. Without the bridge the mod loads and stays dormant — safe to
 install anywhere.
 
-**Upstream status:** the iOS bridge (with the rest of the fork's iOS
-support) has been proposed to mainline gen1recomp in
-[bryanthaboi/gen1recomp#452](https://github.com/bryanthaboi/gen1recomp/pull/452).
-If that lands, official upstream iOS builds will run this mod as-is.
+**Upstream status:** the iOS bridge (with the rest of the iOS support)
+was **merged into mainline gen1recomp** in
+[bryanthaboi/gen1recomp#452](https://github.com/bryanthaboi/gen1recomp/pull/452)
+(2026-07-30). Once that reaches an official release, iOS builds made
+from upstream itself run this mod as-is. The Android step bridge is not
+upstream (yet) — Android needs the build from this project's source
+branch below.
 
 **Why a bridge at all?** A mod alone genuinely cannot do this. Mods are
 Lua inside the LÖVE runtime: there is no sensor or HealthKit API exposed
@@ -162,8 +165,8 @@ The buildable source for both app builds is the
 branch of [mresnick67/gen1recomp](https://github.com/mresnick67/gen1recomp),
 **forked from [bryanthaboi/gen1recomp](https://github.com/bryanthaboi/gen1recomp)
 `dev` @ [`eef6d8a`](https://github.com/bryanthaboi/gen1recomp/commit/eef6d8a368164f610d13303b2418811781eb2654)**
-(2026-07-30). It adds only: the iOS native bridge + build fixes (also
-proposed upstream as
+(2026-07-30). It adds only: the iOS native bridge + build fixes (since merged
+upstream as
 [#452](https://github.com/bryanthaboi/gen1recomp/pull/452)), the Android
 step bridge, this mod, and the two install guides. Everything else is
 untouched upstream code.
