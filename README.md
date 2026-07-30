@@ -1,5 +1,7 @@
 # Pokéwalker (Step Sync) — a Gen1Recomp mod
 
+Disclaimer: This project was 100% created by AI, under my super-vision. 
+
 Your real-world steps become EXP for your Pokémon party — the HeartGold/
 SoulSilver Pokéwalker, except it's the phone already in your pocket.
 
