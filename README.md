@@ -16,9 +16,24 @@ Which file you need:
 
 | File | Who it's for |
 |---|---|
-| `pokewalker-<version>.modpkg` | The mod itself (all platforms). Skip it if you use one of the app builds below — they ship the mod pre-installed. |
-| `gen1recomp-android.apk` | **Android**: the full game app with the step bridge *and this mod already inside*. Sideload it and you're done. |
-| `gen1recomp-ios-dev.ipa` | **iOS**: the full game app with bridge + mod. Dev-signed, so re-sign it for your own device with [AltStore](https://altstore.io)/Sideloadly — or build from source, which is well documented in the fork. |
+| `pokewalker-<version>.modpkg` | The mod itself (all platforms). Skip it if you use the app build below — it ships the mod pre-installed. |
+| `gen1recomp-android.apk` | **Android**: the full game app with the step bridge *and this mod already inside*. Sideload it and you're done. Or build it yourself (below). |
+
+**iOS** follows the same convention as the original project — no
+prebuilt app is distributed; you build it yourself (it's two commands
+once Xcode is installed):
+
+```sh
+git clone -b pokewalker-bridges https://github.com/mresnick67/gen1recomp
+cd gen1recomp
+scripts/build_ios.sh --fetch                # first time: fetch LÖVE + build
+scripts/build_ios.sh --device --install     # sign + install to your iPhone
+```
+
+Full zero-knowledge walkthrough: [`docs/ios-install.md`](https://github.com/mresnick67/gen1recomp/blob/pokewalker-bridges/docs/ios-install.md)
+on that branch. Android builders: same branch,
+[`docs/android-install.md`](https://github.com/mresnick67/gen1recomp/blob/pokewalker-bridges/docs/android-install.md)
+(`scripts/build_android.sh`).
 
 Installing just the mod into an existing app or desktop build:
 
@@ -127,6 +142,19 @@ luajit mods/pokewalker/tests/pokewalker_test.lua
 python3 tools/modkit.py validate mods/pokewalker --base imported
 python3 tools/modkit.py pack mods/pokewalker
 ```
+
+## Source & provenance
+
+The buildable source for both app builds is the
+[`pokewalker-bridges`](https://github.com/mresnick67/gen1recomp/tree/pokewalker-bridges)
+branch of [mresnick67/gen1recomp](https://github.com/mresnick67/gen1recomp),
+**forked from [bryanthaboi/gen1recomp](https://github.com/bryanthaboi/gen1recomp)
+`dev` @ [`eef6d8a`](https://github.com/bryanthaboi/gen1recomp/commit/eef6d8a368164f610d13303b2418811781eb2654)**
+(2026-07-30). It adds only: the iOS native bridge + build fixes (also
+proposed upstream as
+[#452](https://github.com/bryanthaboi/gen1recomp/pull/452)), the Android
+step bridge, this mod, and the two install guides. Everything else is
+untouched upstream code.
 
 ## License
 
