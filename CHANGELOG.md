@@ -18,8 +18,9 @@ steps/day.
   gear, next milestone).
 - **Radar charges.** Shop rows that arm a one-shot forced encounter on
   your next steps through grass or water: BLUE 500W (uncommons), SILVER
-  1,500W (Safari Zone exclusives in real battles), GOLD 5,000W (the
-  legendary birds, terrain-flavored), DIAMOND 10,000W (Mewtwo — or Mew).
+  1,500W (Safari Zone exclusives and the three starters), GOLD 5,000W
+  (the legendary birds, terrain-flavored), DIAMOND 10,000W (Mewtwo — or
+  Mew).
   One charge at a time; spent when the battle fires, win or lose.
 - **Gift milestones.** Pokémon granted at journey-step thresholds
   counted from when you enable the option (never retroactive): Eevee at

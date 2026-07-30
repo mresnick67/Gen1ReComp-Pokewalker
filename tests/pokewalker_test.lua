@@ -211,6 +211,13 @@ enc = Runtime.call("encounter.roll", vanillaRoll,
   Data.encounters.FIX_ROUTE,
   { mapId = "FIX_ROUTE", terrain = "water", rng = fixedRng })
 T.eq(enc and enc.species, "ARTICUNO", "surf-fired gold radar rolls Articuno")
+modSave.radar = { tier = "SILVER" }
+enc = Runtime.call("encounter.roll", vanillaRoll,
+  Data.encounters.FIX_ROUTE,
+  { mapId = "FIX_ROUTE", terrain = "grass",
+    rng = function(_, b) return b end })
+T.eq(enc and enc.species, "SQUIRTLE",
+  "the silver radar pool includes the starters")
 modSave.radar = { tier = "BLUE" }
 run.loader.modOptions.pokewalker = { enabled = true }
 enc = Runtime.call("encounter.roll", vanillaRoll,
@@ -241,6 +248,11 @@ T.check(factory ~= nil, "PokewalkerShop screen registered")
 local screen = (factory.new or factory)(game)
 local list = screen.list
 T.check(list ~= nil and #list.items == 13, "the catalog fills the shop")
+for _, it in ipairs(list.items) do
+  -- label draws from tile 2, price right-aligns to tile 19: past 17
+  -- combined chars they collide (the DIAMOND RADAR overlap bug)
+  T.check(#it.label + #it.right <= 17, "shop row fits: " .. it.label)
+end
 local function rowFor(match)
   for _, it in ipairs(list.items) do
     local v = it.value

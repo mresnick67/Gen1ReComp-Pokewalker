@@ -27,7 +27,8 @@ Shop.CATALOG = {
   { radar = "SILVER", label = "SILVER RADAR", watts = 1500 },
   { item = "MASTER_BALL", watts = 2500, stack = true },
   { radar = "GOLD", label = "GOLD RADAR", watts = 5000 },
-  { radar = "DIAMOND", label = "DIAMOND RADAR", watts = 10000 },
+  -- "DIAMOND RADAR" + "10000W" overruns the 18-tile row into the price
+  { radar = "DIAMOND", label = "DMND RADAR", watts = 10000 },
 }
 
 Shop.STONES = {
@@ -144,16 +145,21 @@ local function newShop(mod, game)
     end,
   })
 
-  -- wrapper: delegate to the list, add the watts box top-right (the list is
-  -- never separately on the stack, so its self-pop pops this wrapper)
+  -- wrapper: delegate to the list, then repaint the money box with watts.
+  -- Dialogue mode always draws its ¥ box at hlcoord 11,0 (ListMenu.lua's
+  -- MONEY_BOX), so ours must sit at the exact same tile rect -- anything
+  -- offset leaves the vanilla box's border peeking out underneath.  The
+  -- list is never separately on the stack, so its self-pop pops this
+  -- wrapper.
   local Font = mod.ui.Font
   local screen = { isOpaque = true, list = list }
   function screen:update(dt) list:update(dt) end
   function screen:draw()
     list:draw()
-    Font.drawBox(12, 0, 8, 3)
+    Font.drawBox(11, 0, 9, 3)
     love.graphics.setColor(0, 0, 0, 1)
-    Font.draw(("%dW"):format(watts()), 13 * 8, 8)
+    local amount = ("%dW"):format(watts())
+    Font.draw(amount, 152 - Font.width(amount), 8)
     love.graphics.setColor(1, 1, 1, 1)
   end
   function screen:sgbPalettes(g) return list:sgbPalettes(g) end

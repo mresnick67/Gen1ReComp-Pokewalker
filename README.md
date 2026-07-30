@@ -116,8 +116,8 @@ special encounter on your next steps through grass or water — spent when
 the battle fires, win, lose, catch, or flee. One charge at a time.
 
 - **BLUE** — uncommons: Ditto, Tangela, Scyther, Pinsir, Onix
-- **SILVER** — Safari Zone exclusives in real battles: Chansey,
-  Kangaskhan, Tauros, Dratini
+- **SILVER** — Safari Zone exclusives in real battles (Chansey,
+  Kangaskhan, Tauros, Dratini) plus the three original starters
 - **GOLD** — the legendary birds at Lv.50; where you walk matters
   (surfing rolls Articuno, caves roll Moltres)
 - **DIAMOND** — Mewtwo Lv.70, or sometimes Mew Lv.30. Bring that

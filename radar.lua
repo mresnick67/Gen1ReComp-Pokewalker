@@ -20,6 +20,9 @@ Radar.POOLS = {
     { species = "KANGASKHAN", level = 28 },
     { species = "TAUROS", level = 28 },
     { species = "DRATINI", level = 20 },
+    { species = "BULBASAUR", level = 15 },
+    { species = "CHARMANDER", level = 15 },
+    { species = "SQUIRTLE", level = 15 },
   },
 }
 
