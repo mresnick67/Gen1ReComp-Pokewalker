@@ -3,6 +3,37 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-07-30
+
+### Added
+
+All three systems are **opt-in and default off** — an untouched install
+behaves exactly like 0.2.x. Balance targets a ~1-month arc at 10,000
+steps/day.
+
+- **Watts.** Steps earn a currency (20 steps = 1W) spent in a new
+  START-menu WALKER entry: a watt shop (balls, Nugget, PP Up, Rare
+  Candy, a pick-your-stone evolution stone row, Master Ball at 2,500W)
+  and a Pokéwalker trainer card (watts, lifetime steps, streak, armed
+  gear, next milestone).
+- **Radar charges.** Shop rows that arm a one-shot forced encounter on
+  your next steps through grass or water: BLUE 500W (uncommons), SILVER
+  1,500W (Safari Zone exclusives in real battles), GOLD 5,000W (the
+  legendary birds, terrain-flavored), DIAMOND 10,000W (Mewtwo — or Mew).
+  One charge at a time; spent when the battle fires, win or lose.
+- **Gift milestones.** Pokémon granted at journey-step thresholds
+  counted from when you enable the option (never retroactive): Eevee at
+  10k through Mew at 300k.
+- **Streaks.** Hitting a configurable daily step goal on consecutive
+  days multiplies EXP and watt earnings (up to ×2 at 30 days), pays a
+  weekly watt bonus, and day 30 hands you a free Master Ball. A Streak
+  Shield (250W) auto-bridges exactly one missed day.
+
+### Fixed
+
+- Level-ups from steps now trigger level evolutions, exactly like a
+  rare candy (previously deferred to the next in-battle level).
+
 ## [0.2.1] - 2026-07-30
 
 ### Fixed

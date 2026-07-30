@@ -69,6 +69,13 @@ STEPS** and approve the system prompt that appears the first time.
 | SYNC STEPS | on / off | **off** |
 | STEPS PER EXP | 10 / 20 / 50 | 20 |
 | GIVE EXP TO | lead mon / whole party (split) | lead mon |
+| WATTS | on / off | **off** |
+| STREAKS | on / off | **off** |
+| DAILY GOAL | 3000 / 5000 / 10000 | 5000 |
+| STEP GIFTS | on / off | **off** |
+
+The last four are the v0.3.0 economy — all optional. Leave them off and
+the mod is exactly the classic steps→EXP experience.
 
 ## Mechanics & guardrails
 
@@ -85,6 +92,64 @@ STEPS** and approve the system prompt that appears the first time.
   flow as a rare candy. A free slot auto-learns with a "learned!" box; a
   full moveset opens the game's own "forget which move?" menu, so
   nothing is ever forgotten without asking.
+
+## The watt economy (v0.3.0 — all opt-in)
+
+Turn on **WATTS** and steps also charge a currency, 20 steps = 1W,
+spent in a **WALKER** entry that appears in the START menu. Balance
+targets a full arc in about a month at 10,000 steps/day (~500W/day).
+
+**Watt shop:**
+
+| Row | Watts | | Row | Watts |
+|---|---|---|---|---|
+| Poké Ball | 50 | | Evo. stone (pick one) | 1,000 |
+| Great Ball | 100 | | Rare Candy | 1,250 |
+| Streak Shield | 250 | | Silver Radar | 1,500 |
+| Ultra Ball | 250 | | Master Ball | 2,500 |
+| Nugget | 500 | | Gold Radar | 5,000 |
+| Blue Radar | 500 | | Diamond Radar | 10,000 |
+| PP Up | 750 | | | |
+
+**Radar charges** arm the moment you buy one (no bag item) and force a
+special encounter on your next steps through grass or water — spent when
+the battle fires, win, lose, catch, or flee. One charge at a time.
+
+- **BLUE** — uncommons: Ditto, Tangela, Scyther, Pinsir, Onix
+- **SILVER** — Safari Zone exclusives in real battles: Chansey,
+  Kangaskhan, Tauros, Dratini
+- **GOLD** — the legendary birds at Lv.50; where you walk matters
+  (surfing rolls Articuno, caves roll Moltres)
+- **DIAMOND** — Mewtwo Lv.70, or sometimes Mew Lv.30. Bring that
+  Master Ball.
+
+Radar legendaries never interfere with the game's own static
+encounters — you can still have the Victory Road Moltres too.
+
+**STREAKS**: hit your DAILY GOAL on consecutive days and both EXP and
+watt earnings multiply — ×1.1 at 3 days, ×1.25 at 7, ×1.5 at 14, ×2 at
+30 (cap). Every completed week pays +500W, and day 30 hands you a free
+Master Ball. The **Streak Shield** (250W, hold one) automatically
+bridges exactly one missed day; two or more missed days break the
+streak and keep the shield.
+
+**STEP GIFTS**: pokémon join you at journey milestones. The journey
+starts counting **when you enable the option** — nothing is granted
+retroactively.
+
+| Journey steps | Gift |
+|---|---|
+| 10,000 | Eevee Lv.5 |
+| 25,000 | Hitmonlee *or* Hitmonchan Lv.20 |
+| 50,000 | Porygon Lv.15 |
+| 100,000 | Lapras Lv.15 |
+| 150,000 | Snorlax Lv.30 |
+| 200,000 | Aerodactyl Lv.30 |
+| 300,000 | Mew Lv.5 |
+
+Watts, streaks, and journey progress live inside your game save: they
+travel with it, and — like the EXP credit itself — anything banked since
+your last in-game SAVE is lost if you quit without saving.
 
 ## Requirements
 
@@ -138,9 +203,9 @@ Open an issue here if you're porting the bridge to another platform.
 
 ## Known limitations
 
-- Level evolutions wait for the next in-battle or rare-candy level —
-  walking never evolves a mon out from under you.
 - Steps sync on launch/activation; no background delivery yet.
+- Progress banked since your last in-game SAVE (EXP, watts, streaks) is
+  lost if you quit without saving — the game has no autosave.
 
 ## Developing
 

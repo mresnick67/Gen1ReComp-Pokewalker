@@ -2,6 +2,8 @@
 -- Exercises the stated effect: opt-in gating, the native-bridge seam,
 -- steps converting to EXP through the engine's own growth math, and the
 -- rare-candy-style credit presentation (paged report + move learning).
+-- v0.3.0 sections cover the opt-in economy: watts, the shop, radar
+-- charges, gift milestones, streaks, and the out-of-battle evolution fix.
 --
 -- Shipped-mod suites are auto-run by the ROM-free T4 tier, so this runs
 -- against the committed fixture dataset (T.fixtures), never data/generated.
@@ -24,7 +26,8 @@ end
 -- restored at the end -- T4 suites share one process.
 local savedTextBox = package.loaded["src.render.TextBox"]
 local savedScreens = package.loaded["src.ui.Screens"]
-local shown, menuCalls = {}, {}
+local savedMusic = package.loaded["src.core.Music"]
+local shown, menuCalls, pushed = {}, {}, {}
 package.loaded["src.render.TextBox"] = {
   new = function(_, text, onDone)
     return { __text = text, __onDone = onDone }
@@ -36,6 +39,26 @@ package.loaded["src.ui.Screens"] = {
     if cb then cb() end
   end,
 }
+package.loaded["src.core.Music"] = {
+  play = function() end,
+  stop = function() end,
+  restoreMap = function() end,
+  special = function() return nil end,
+}
+-- Modules that capture the fakes above as module-locals when THEY load:
+-- evict any prior copy so they rebind to the fakes here, and restore the
+-- prior copies on exit so later suites in this process see reality.
+local rebindWithFakes = {
+  "src.pokemon.Evolution", "src.script.Commands", "src.battle.BattleState",
+}
+local preloaded = {}
+for _, name in ipairs(rebindWithFakes) do
+  preloaded[name] = package.loaded[name]
+  package.loaded[name] = nil
+end
+-- force Evolution's headless (text) path instead of the EvolutionState movie
+local savedImage = love.image
+love.image = nil
 
 local run = T.sdk.loadMod("mods/pokewalker", { data = Data })
 T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
@@ -50,11 +73,16 @@ local ow = { map = {}, runner = { isRunning = function() return false end } }
 local stackTop = nil
 local game = {
   data = Data,
-  save = { party = { mon } },
+  save = {
+    party = { mon },
+    inventory = {},
+    player = { name = "RED", id = 1234 },
+  },
   overworld = ow,
   stack = {
     top = function() return stackTop end,
     push = function(_, state)
+      pushed[#pushed + 1] = state
       shown[#shown + 1] = state.__text
       if state.__onDone then state.__onDone() end
     end,
@@ -103,12 +131,6 @@ T.check(shown[1]:find(leadName .. " gained", 1, true) ~= nil,
   "lead target names the lead mon, not the party")
 T.check(shown[1]:find("\f", 1, true) ~= nil,
   "report pages are \\f-separated so each box waits for A")
--- 18 is Theme.textBox.maxCols: a wider line soft-wraps, and the wrapped
--- continuation scrolls through without waiting for A -- the "report
--- auto-scrolls to the end on boot" bug.
-for line in shown[1]:gmatch("[^\f\n]+") do
-  T.check(#line <= 18, "report line fits the 18-col box: '" .. line .. "'")
-end
 T.eq(#menuCalls, 1, "a full moveset routes through the learn menu")
 T.eq(menuCalls[1].id, "MoveLearnMenu", "the engine's own menu is used")
 T.eq(menuCalls[1].move, "FIX_EMBERISH", "offering the level-7 learnset move")
@@ -141,7 +163,288 @@ local expAfter = mon2.exp
 events:emit("map.entered", {})
 T.eq(mon2.exp, expAfter, "no pending file, no phantom EXP")
 
+-- ------- v0.3.0: all-off leaves no economy footprint
+
+local modSave = run.loader.modSave.pokewalker
+local exportsPW = run.loader.exports.pokewalker
+T.check(modSave.watts == nil, "all-off: no watts key materializes")
+T.eq(modSave.lifetimeSteps, 40000, "lifetime steps accrue with SYNC on")
+
+local function sync(steps, event)
+  love.filesystem.write("steps_pending.json",
+    ('{"steps": %d}'):format(steps))
+  events:emit(event or "battle.ended", {})
+end
+
+-- ------- v0.3.0: watts accrual
+
+run.loader.modOptions.pokewalker = { enabled = true, watts = true }
+game.save.party = { Pokemon.new(Data, "FIXMON_A", 5) }
+sync(20000, "map.entered")
+T.eq(modSave.watts, 1000, "20000 steps at 20 steps/W = 1000W")
+T.eq(modSave.lifetimeSteps, 60000, "lifetime keeps counting")
+local wattsPage = false
+for _, text in ipairs(shown) do
+  if text:find("You earned\n1000W!", 1, true) then wattsPage = true end
+end
+T.check(wattsPage, "the watt earn announces itself")
+
+-- ------- v0.3.0: radar charges force the next roll
+
+local Runtime = require("src.mods.Runtime")
+local vanillaRoll = function() return nil end
+local fixedRng = function(a, _) return a end
+modSave.radar = { tier = "GOLD" }
+local enc = Runtime.call("encounter.roll", vanillaRoll,
+  Data.encounters.FIX_ROUTE,
+  { mapId = "FIX_ROUTE", terrain = "grass", rng = fixedRng })
+T.check(enc ~= nil and (enc.species == "ZAPDOS" or enc.species == "MOLTRES"
+    or enc.species == "ARTICUNO"), "gold radar forces a bird")
+T.eq(enc and enc.level, 50, "birds come at level 50")
+T.eq(modSave.radar, false, "the charge is spent when the battle fires")
+enc = Runtime.call("encounter.roll", vanillaRoll,
+  Data.encounters.FIX_ROUTE,
+  { mapId = "FIX_ROUTE", terrain = "grass", rng = fixedRng })
+T.check(enc == nil, "disarmed radar rolls vanilla")
+modSave.radar = { tier = "GOLD" }
+enc = Runtime.call("encounter.roll", vanillaRoll,
+  Data.encounters.FIX_ROUTE,
+  { mapId = "FIX_ROUTE", terrain = "water", rng = fixedRng })
+T.eq(enc and enc.species, "ARTICUNO", "surf-fired gold radar rolls Articuno")
+modSave.radar = { tier = "BLUE" }
+run.loader.modOptions.pokewalker = { enabled = true }
+enc = Runtime.call("encounter.roll", vanillaRoll,
+  Data.encounters.FIX_ROUTE,
+  { mapId = "FIX_ROUTE", terrain = "grass", rng = fixedRng })
+T.check(enc == nil and type(modSave.radar) == "table",
+  "an armed radar stays inert (and unspent) while WATTS is off")
+modSave.radar = false
+
+-- ------- v0.3.0: the START-menu row follows the WATTS toggle
+
+run.loader.modOptions.pokewalker = { enabled = true, watts = true }
+local menuItems = Runtime.call("ui.start_menu.items",
+  function(_, items) return items end, game, { { label = "SAVE" } })
+T.check(menuItems[1] ~= nil and menuItems[1].label == "WALKER",
+  "WALKER row inserted before SAVE")
+run.loader.modOptions.pokewalker = { enabled = true }
+menuItems = Runtime.call("ui.start_menu.items",
+  function(_, items) return items end, game, { { label = "SAVE" } })
+T.eq(#menuItems, 1, "no WALKER row while WATTS is off")
+
+-- ------- v0.3.0: the watt shop
+
+run.loader.modOptions.pokewalker = { enabled = true, watts = true }
+local Bag = require("src.inventory.Bag")
+local factory = Data.screens and Data.screens.PokewalkerShop
+T.check(factory ~= nil, "PokewalkerShop screen registered")
+local screen = (factory.new or factory)(game)
+local list = screen.list
+T.check(list ~= nil and #list.items == 13, "the catalog fills the shop")
+local function rowFor(match)
+  for _, it in ipairs(list.items) do
+    local v = it.value
+    if v.item == match or v.radar == match
+        or (match == "stones" and v.stones)
+        or (match == "shield" and v.shield) then
+      return it
+    end
+  end
+end
+
+modSave.watts = 10000
+list.onChoose(rowFor("POKE_BALL"))
+local qbox = pushed[#pushed]
+T.check(qbox.onDone ~= nil, "stackable items open the quantity box")
+qbox.onDone(3)
+local cbox = pushed[#pushed]
+T.check(cbox.onChoose ~= nil, "purchases confirm through YES/NO")
+cbox.onChoose(true)
+T.eq(game.save.inventory.POKE_BALL, 3, "bought 3 poke balls")
+T.eq(modSave.watts, 10000 - 150, "watts debited by quantity x price")
+
+modSave.watts = 10
+list.onChoose(rowFor("MASTER_BALL"))
+T.check(tostring(list.footer):find("Not enough", 1, true) ~= nil,
+  "insufficient watts refuses up front")
+T.eq(modSave.watts, 10, "refusal costs nothing")
+
+modSave.watts = 6000
+list.onChoose(rowFor("BLUE"))
+pushed[#pushed].onChoose(true)
+T.check(type(modSave.radar) == "table" and modSave.radar.tier == "BLUE",
+  "buying a radar arms it immediately")
+T.eq(modSave.watts, 5500, "radar purchase deducts watts")
+list.onChoose(rowFor("GOLD"))
+T.check(tostring(list.footer):find("already armed", 1, true) ~= nil,
+  "one charge at a time")
+T.eq(modSave.watts, 5500, "the blocked purchase costs nothing")
+modSave.radar = false
+
+list.onChoose(rowFor("shield"))
+pushed[#pushed].onChoose(true)
+T.eq(modSave.shield, true, "streak shield held after purchase")
+T.eq(modSave.watts, 5250, "shield costs 250W")
+list.onChoose(rowFor("shield"))
+T.check(tostring(list.footer):find("already hold", 1, true) ~= nil,
+  "only one shield at a time")
+
+local wattsBefore = modSave.watts
+list.onChoose(rowFor("stones"))
+local stoneMenu = pushed[#pushed]
+T.check(stoneMenu.items ~= nil and #stoneMenu.items == 5,
+  "the stone picker offers all five stones")
+stoneMenu.items[2].onSelect()
+pushed[#pushed].onChoose(true)
+T.eq(game.save.inventory.WATER_STONE, 1, "the chosen stone is granted")
+T.eq(modSave.watts, wattsBefore - 1000, "stones cost a flat 1000W")
+
+local filler = 1
+while Bag.slots(game.save) < Bag.CAPACITY do
+  Bag.add(game.save, "FILLER_" .. filler, 1)
+  filler = filler + 1
+end
+wattsBefore = modSave.watts
+list.onChoose(rowFor("GREAT_BALL"))
+pushed[#pushed].onDone(1)
+pushed[#pushed].onChoose(true)
+T.check(game.save.inventory.GREAT_BALL == nil, "a full bag refuses the item")
+T.eq(modSave.watts, wattsBefore, "the refused purchase costs nothing")
+T.check(tostring(list.footer):find("can't carry", 1, true) ~= nil,
+  "the full bag speaks up")
+game.save.inventory = {}
+game.save.bagOrder = nil
+
+-- ------- v0.3.0: streaks (driven clock)
+
+run.loader.modOptions.pokewalker =
+  { enabled = true, watts = true, streaks = true }
+game.save.party = { Pokemon.new(Data, "FIXMON_A", 5) }
+modSave.watts = 0
+modSave.shield = false
+local DAY = 86400
+local clock = os.time({ year = 2026, month = 1, day = 5, hour = 12 })
+exportsPW.setNow(function() return clock end)
+
+sync(3000)
+T.eq(modSave.streak or 0, 0, "3000 steps misses the 5000 daily goal")
+sync(3000)
+T.eq(modSave.streak, 1, "same-day syncs accumulate toward the goal")
+for _ = 1, 6 do
+  clock = clock + DAY
+  sync(6000)
+end
+T.eq(modSave.streak, 7, "seven goal days in a row")
+T.eq(modSave.bestStreak, 7, "best streak tracks")
+local weeklyPage = false
+for _, text in ipairs(shown) do
+  if text:find("7-day streak!", 1, true) then weeklyPage = true end
+end
+T.check(weeklyPage, "the completed week announces its bonus")
+
+local wattsAt7 = modSave.watts
+clock = clock + DAY
+sync(6000)
+T.eq(modSave.streak, 8, "day 8 continues the streak")
+T.eq(modSave.watts - wattsAt7, math.floor(6000 / 20 * 1.25),
+  "watt earn rides the streak multiplier")
+
+modSave.shield = true
+clock = clock + 2 * DAY
+sync(6000)
+T.eq(modSave.streak, 9, "the shield bridges exactly one missed day")
+T.eq(modSave.shield, false, "the shield is consumed")
+local shieldPage = false
+for _, text in ipairs(shown) do
+  if text:find("Streak Shield", 1, true) then shieldPage = true end
+end
+T.check(shieldPage, "the shield announces the save")
+
+modSave.shield = true
+clock = clock + 3 * DAY
+sync(6000)
+T.eq(modSave.streak, 1, "two missed days break the streak")
+T.eq(modSave.shield, true, "a shield only spends on one-day gaps")
+modSave.shield = false
+
+for _ = 1, 29 do
+  clock = clock + DAY
+  sync(6000)
+end
+T.eq(modSave.streak, 30, "back up to thirty days")
+T.eq(game.save.inventory.MASTER_BALL, 1, "day 30 grants the master ball")
+clock = clock + DAY
+sync(6000)
+T.eq(modSave.streak, 31, "the streak keeps counting")
+T.eq(game.save.inventory.MASTER_BALL, 1, "the ball is granted exactly once")
+
+-- ------- v0.3.0: gift milestones (journey steps, no retroactive grants)
+
+run.loader.modOptions.pokewalker = { enabled = true, gifts = true }
+local ms = exportsPW.milestones
+T.check(type(ms) == "table" and ms[1].at == 10000, "milestone ladder exported")
+local savedMs = {}
+for i, v in ipairs(ms) do savedMs[i] = v end
+for i = #ms, 1, -1 do ms[i] = nil end
+-- fixture stand-ins: the real ladder's species aren't in the fixture set
+ms[1] = { at = 10000, species = "FIXMON_C", level = 5 }
+ms[2] = { at = 15000, choice = { "FIXMON_A", "FIXMON_C" }, level = 20 }
+ms[3] = { at = 900000, species = "FIXMON_B", level = 10 }
+
+game.save.party = { Pokemon.new(Data, "FIXMON_A", 5) }
+sync(20000)
+T.eq(#game.save.party, 1, "enabling gifts is not retroactive")
+T.check(modSave.milestoneBase ~= nil, "the journey base is snapshotted")
+sync(20000)
+T.eq(#game.save.party, 2, "crossing 10k journey steps grants the gift")
+T.eq(game.save.party[2].species, "FIXMON_C", "the right species arrives")
+T.check(modSave.milestonesGranted["10000"] == true, "the grant is recorded")
+sync(1000)
+local choiceMenu = pushed[#pushed]
+T.check(choiceMenu.items ~= nil and #choiceMenu.items == 2,
+  "a choice milestone offers its menu (one grant per quiet moment)")
+choiceMenu.items[1].onSelect()
+T.eq(#game.save.party, 3, "the chosen mon is granted")
+T.eq(game.save.party[3].species, "FIXMON_A", "the first choice was taken")
+T.check(modSave.milestonesGranted["15000"] == true, "the choice is recorded")
+sync(1000)
+T.eq(#game.save.party, 3, "no phantom grants below the next threshold")
+for i = #ms, 1, -1 do ms[i] = nil end
+for i, v in ipairs(savedMs) do ms[i] = v end
+
+-- ------- v0.3.0: step level-ups trigger evolutions (v1 gap closed)
+
+run.loader.modOptions.pokewalker = { enabled = true }
+local monE = Pokemon.new(Data, "FIXMON_A", 14)
+game.save.party = { monE }
+local needed = Growth.expForLevel(Data.pokemon.FIXMON_A.growthRate, 16,
+                                  Data.growth_rates) - monE.exp
+local evoShownFrom = #shown
+sync(needed * 20 + 19, "map.entered")
+T.eq(monE.species, "FIXMON_B", "step level-ups now evolve")
+T.check(monE.level >= 16, "the evolution level was reached")
+local evoPage = false
+for i = evoShownFrom + 1, #shown do
+  if shown[i]:find("evolving", 1, true) then evoPage = true end
+end
+T.check(evoPage, "the evolution announces itself")
+
+-- ------- every page of every report respects the 18-column TextBox budget
+-- (wider lines soft-wrap and the wrapped continuation scrolls through
+-- without waiting for A -- the v0.2.0 auto-scroll bug)
+
+for _, text in ipairs(shown) do
+  for line in tostring(text):gmatch("[^\f\n\v]+") do
+    T.check(#line <= 18, "report line fits the 18-col box: '" .. line .. "'")
+  end
+end
+
 package.loaded["src.render.TextBox"] = savedTextBox
 package.loaded["src.ui.Screens"] = savedScreens
+package.loaded["src.core.Music"] = savedMusic
+for _, name in ipairs(rebindWithFakes) do
+  package.loaded[name] = preloaded[name]
+end
+love.image = savedImage
 run.release()
 T.finish("pokewalker")
