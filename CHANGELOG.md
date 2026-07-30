@@ -3,6 +3,29 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-07-30
+
+### Added
+
+- **Move learning.** Level-up moves crossed while walking are no longer
+  skipped: the credit now runs the same flow as a rare candy — a free
+  slot auto-learns with a "learned!" box, a full moveset opens the
+  engine's own "forget which move?" menu. Nothing is ever forgotten
+  without asking.
+- **Credit dialog on app open.** The walk report now presents as proper
+  engine textbox pages the moment a continued save lands in the
+  overworld (each page waits for the A button), followed by any move
+  learning.
+
+### Fixed
+
+- The walk report no longer auto-scrolls past its first box: pages are
+  now form-feed-separated engine TextBox pages, each waiting for input,
+  instead of one overflowing box.
+- The credit now waits for a quiet overworld moment (overworld on top of
+  the stack, no script running) instead of firing into menus or battle
+  teardown; pending steps simply retry at the next opportunity.
+
 ## [0.1.0] - 2026-07-30
 
 Initial public release, for iOS and Android builds that ship the native

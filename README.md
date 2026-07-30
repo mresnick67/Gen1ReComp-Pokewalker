@@ -77,8 +77,14 @@ STEPS** and approve the system prompt that appears the first time.
 - Steps are anchored to the last sync — the same walk is never credited
   twice — and any single sync is clamped to 50,000 steps.
 - The engine `levelCap` constant is respected.
-- Credits land at quiet moments (save load, map change, battle end) with a
-  walk-report textbox.
+- Credits land at quiet overworld moments — including the moment you
+  open the app and continue your save — as proper engine textbox pages
+  (each waits for the A button): the walk report, who grew, and then any
+  move learning.
+- **Level-up moves are learned, not skipped**: the credit runs the same
+  flow as a rare candy. A free slot auto-learns with a "learned!" box; a
+  full moveset opens the game's own "forget which move?" menu, so
+  nothing is ever forgotten without asking.
 
 ## Requirements
 
@@ -127,11 +133,10 @@ Two reference implementations exist:
 
 Open an issue here if you're porting the bridge to another platform.
 
-## Known limitations (v1)
+## Known limitations
 
-- Level-ups granted while walking don't prompt for new moves, and level
-  evolutions wait for the next in-battle level — same behavior as
-  over-leveling with rare candies.
+- Level evolutions wait for the next in-battle or rare-candy level —
+  walking never evolves a mon out from under you.
 - Steps sync on launch/activation; no background delivery yet.
 
 ## Developing

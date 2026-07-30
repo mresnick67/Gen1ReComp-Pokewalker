@@ -12,8 +12,11 @@ return {
         .. "EXP at a configurable rate (10/20/50 steps per EXP)",
       "EXP lands on the lead mon or splits across the party, applied with "
         .. "the engine's own growth curves and rare-candy stat math",
-      "a walk-report textbox at quiet moments (save load, map change, "
-        .. "battle end)",
+      "a paged walk-report dialog at quiet overworld moments (app open, "
+        .. "map change, battle end), each page waiting for the A button",
+      "level-up moves crossed while walking are learned like a rare candy "
+        .. "level: auto-learn into a free slot, the engine's forget-a-move "
+        .. "menu when four moves are known",
     },
     known = {
       "needs an iOS or Android build that ships the native step bridge "
@@ -22,9 +25,8 @@ return {
       "Android counts steps with the hardware step counter: no Health app "
         .. "needed, but steps between a phone reboot and the next sync are "
         .. "not credited",
-      "level-ups granted while walking do not prompt for new moves and do "
-        .. "not trigger level evolutions until the next in-battle level "
-        .. "(same as over-leveling with rare candies)",
+      "level evolutions still wait for the next in-battle or rare-candy "
+        .. "level; walking never evolves a mon",
       "steps sync on launch/activation; no background delivery yet",
     },
   },

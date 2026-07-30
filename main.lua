@@ -70,25 +70,63 @@ return function(mod)
     return absorbed, levels
   end
 
-  -- A short walk-report textbox, shown only when the overworld is idle;
-  -- when a script is already running the report is silently skipped (the
-  -- EXP is applied regardless, and the log has the numbers).
-  local function report(steps, total, leveled)
-    local msg = ("You walked %d steps!\nYour party gained %d EXP."):format(steps, total)
-    if #leveled > 0 then
-      msg = msg .. ("\n%s grew to L%d!"):format(leveled[1].name, leveled[1].level)
+  -- The credit presents like the rare-candy flow (BagMenu's RARE_CANDY
+  -- path): TextBox pages separated by \f (each page waits for A), then a
+  -- learn step per level-up move -- auto-learn with a message when a slot
+  -- is free, the engine's MoveLearnMenu ("forget which move?") when four
+  -- moves are known.  That needs the overworld idle and on top of the
+  -- stack, so consume() only fires when it can present; otherwise the
+  -- pending file is left alone and the next quiet event retries.
+  local function presentable()
+    local ow = game and game.overworld
+    if not (ow and ow.map and game.stack and game.stack.top) then return false end
+    if game.stack:top() ~= ow then return false end
+    if ow.runner and ow.runner.isRunning and ow.runner:isRunning() then
+      return false
     end
-    -- The report is decoration: it must never break the credit.  mod.world
-    -- materializes lazily (and can itself error in headless contexts), so
-    -- the access lives inside the pcall too.
-    pcall(function()
-      local world = mod.world
-      if world then world:queueScript({ { "show_text", msg } }) end
-    end)
+    return true
+  end
+
+  local function monName(mon, data)
+    local def = data.pokemon[mon.species]
+    return mon.nickname or (def and def.name) or mon.species
+  end
+
+  -- One learn step at a time, BagMenu-style: the chain owns its own
+  -- continuation so a MoveLearnMenu can sit between two auto-learns.
+  local function runLearnQueue(queue, data)
+    local Strings = require("src.core.Strings")
+    local TextBox = require("src.render.TextBox")
+    local i = 0
+    local function nextStep()
+      i = i + 1
+      local entry = queue[i]
+      if not entry then return end
+      local mon, moveId = entry.mon, entry.move
+      for _, mv in ipairs(mon.moves) do
+        if mv.id == moveId then return nextStep() end
+      end
+      local mdef = data.moves[moveId]
+      if not mdef then return nextStep() end
+      if #mon.moves < 4 then
+        table.insert(mon.moves, { id = moveId, pp = mdef.pp })
+        game.stack:push(TextBox.new(game,
+          Strings("%s learned\n%s!", monName(mon, data), mdef.name), nextStep))
+      else
+        require("src.ui.Screens").push(game, "MoveLearnMenu", mon, moveId,
+                                       nextStep)
+      end
+    end
+    nextStep()
   end
 
   local function consume()
     if not (game and active()) then return end
+    if not love.filesystem.getInfo(PENDING, "file") then return end
+    -- Not a quiet overworld moment: keep the file, retry on the next
+    -- event (map.entered fires with via="boot" right as a continued save
+    -- lands in the overworld, so an app-open credit shows immediately).
+    if not presentable() then return end
     local raw = love.filesystem.read(PENDING)
     if not raw then return end
     local decoded = Json.decode(raw)
@@ -102,7 +140,10 @@ return function(mod)
     local xp = math.floor(steps / rate)
     if xp <= 0 then return end
 
-    local total, leveled = 0, {}
+    local data = game.data
+    local total, pages, learnQueue = 0, {}, {}
+    local Strings = require("src.core.Strings")
+    local Experience = require("src.battle.Experience")
     local targets = {}
     if mod.options:get("target") == "party" then
       for _, mon in ipairs(party) do targets[#targets + 1] = mon end
@@ -111,17 +152,30 @@ return function(mod)
     end
     local share = math.max(1, math.floor(xp / #targets))
     for _, mon in ipairs(targets) do
-      local absorbed, levels = applyToMon(mon, share, game.data)
+      local fromLevel = mon.level
+      local absorbed, levels = applyToMon(mon, share, data)
       total = total + absorbed
-      for _, level in ipairs(levels) do
-        leveled[#leveled + 1] =
-          { name = mon.nickname or mon.species, level = level }
+      if #levels > 0 then
+        pages[#pages + 1] = Strings("%s grew\nto level %d!",
+                                    monName(mon, data), mon.level)
+        local def = data.pokemon[mon.species]
+        for level = fromLevel + 1, mon.level do
+          for _, moveId in ipairs(Experience.movesLearnedAt(def, level)) do
+            learnQueue[#learnQueue + 1] = { mon = mon, move = moveId }
+          end
+        end
       end
     end
     if total <= 0 then return end
-    mod.log:info("credited %d steps -> %d EXP (%d level-ups)",
-                 steps, total, #leveled)
-    report(steps, total, leveled)
+    mod.log:info("credited %d steps -> %d EXP (%d level-up pages, %d learnable)",
+                 steps, total, #pages, #learnQueue)
+
+    table.insert(pages, 1, Strings("You walked %d steps!\nYour party gained %d EXP.",
+                                   steps, total))
+    local TextBox = require("src.render.TextBox")
+    game.stack:push(TextBox.new(game, table.concat(pages, "\f"), function()
+      runLearnQueue(learnQueue, data)
+    end))
   end
 
   -- game.ready is the sanctioned way to obtain the Game object; the party
