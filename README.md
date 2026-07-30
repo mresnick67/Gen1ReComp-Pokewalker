@@ -6,46 +6,47 @@ Your real-world steps become EXP for your Pokémon party — the HeartGold/
 SoulSilver Pokéwalker, except it's the phone already in your pocket.
 
 A mod for [gen1recomp](https://github.com/bryanthaboi/gen1recomp)
-(the Gen 1 Recompilation Project). Works on **iOS and Android** builds
-that ship the native step bridge. Opt-in, data-safe, and dormant on any
-platform without the bridge (see [Requirements](#requirements)).
+(the Gen 1 Recompilation Project). The native step bridges this mod
+relies on are **part of the main project now**: the iOS bridge was
+merged in
+[bryanthaboi/gen1recomp#452](https://github.com/bryanthaboi/gen1recomp/pull/452)
+and already ships in official releases; the Android bridge is
+[bryanthaboi/gen1recomp#489](https://github.com/bryanthaboi/gen1recomp/pull/489)
+and should be in the next release after it lands. No patched or
+sideloaded custom builds needed — official gen1recomp builds run this
+mod as-is. It's opt-in, data-safe, and dormant on any platform without
+a bridge (desktop included — see [Requirements](#requirements)).
 
 ## Install
 
-Everything lives on the
-[Releases page](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases).
-Which file you need:
+**1. Get the game** from the official
+[gen1recomp releases](https://github.com/bryanthaboi/gen1recomp/releases) —
+every release attaches an Android APK (`gen1recomp-<version>-android.apk`)
+and an iOS IPA (see upstream's
+[`docs/ios-sideload.md`](https://github.com/bryanthaboi/gen1recomp/blob/main/docs/ios-sideload.md)
+for installing it), alongside the desktop builds. iOS can also be built
+from source with your own free Apple ID
+([`docs/ios-install.md`](https://github.com/bryanthaboi/gen1recomp/blob/main/docs/ios-install.md)).
 
-| File | Who it's for |
-|---|---|
-| `pokewalker-<version>.zip` | The mod itself (all platforms) — everyone needs this one. |
-| `gen1recomp-android.apk` | **Android**: the full game app with the step bridge. Sideload it, then import the mod zip (mods ship separately so the mod manager can delete and upgrade them). Or build it yourself (below). |
+> **Android, until #489 ships in a release:** the official APK doesn't
+> expose steps yet. Grab the release here that still attaches
+> `gen1recomp-android.apk`, or build from the
+> [`pokewalker-bridges`](https://github.com/mresnick67/gen1recomp/tree/pokewalker-bridges)
+> branch.
 
-**iOS** follows the same convention as the original project — no
-prebuilt app is distributed; you build it yourself (it's two commands
-once Xcode is installed):
-
-```sh
-git clone -b pokewalker-bridges https://github.com/mresnick67/gen1recomp
-cd gen1recomp
-scripts/build_ios.sh --fetch                # first time: fetch LÖVE + build
-scripts/build_ios.sh --device --install     # sign + install to your iPhone
-```
-
-Full zero-knowledge walkthrough: [`docs/ios-install.md`](https://github.com/mresnick67/gen1recomp/blob/pokewalker-bridges/docs/ios-install.md)
-on that branch. Android builders: same branch,
-[`docs/android-install.md`](https://github.com/mresnick67/gen1recomp/blob/pokewalker-bridges/docs/android-install.md)
-(`scripts/build_android.sh`).
-
-Installing just the mod into an existing app or desktop build:
+**2. Get the mod** — `pokewalker-<version>.zip` from this repo's
+[Releases page](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases)
+(the mod ships separately from the app so the mod manager can delete
+and upgrade it). Install it into any build:
 
 - **In the launcher:** MODS tab → **Import mod .zip** → pick the zip,
   or drag it onto the window on desktop.
 - **iOS:** you can also drop the zip into the app's folder in the Files
   app; it installs on next launch.
 
-Then, in the **mod manager → POKEWALKER → options**, turn on **SYNC
-STEPS** and approve the system prompt that appears the first time.
+**3. Turn it on** — in the **mod manager → POKEWALKER → options**,
+enable **SYNC STEPS** and approve the system prompt that appears the
+first time.
 
 ### What each platform asks for, and how it counts
 
@@ -64,6 +65,9 @@ STEPS** and approve the system prompt that appears the first time.
 
 ## Options
 
+Everything defaults **off** or to the classic experience — enable
+exactly as much as you want:
+
 | Option | Values | Default |
 |---|---|---|
 | SYNC STEPS | on / off | **off** |
@@ -74,10 +78,11 @@ STEPS** and approve the system prompt that appears the first time.
 | DAILY GOAL | 3000 / 5000 / 10000 | 5000 |
 | STEP GIFTS | on / off | **off** |
 
-The last four are the v0.3.0 economy — all optional. Leave them off and
-the mod is exactly the classic steps→EXP experience.
+SYNC STEPS is the core steps→EXP loop; WATTS, STREAKS, and STEP GIFTS
+layer an economy on top of it (below). Leave them off and the mod is
+exactly the classic walk-to-level experience.
 
-## Mechanics & guardrails
+## Steps → EXP: mechanics & guardrails
 
 - EXP applies through the engine's own growth curves and rare-candy stat
   math, so levels, stats, and HP top-ups are exact.
@@ -93,7 +98,7 @@ the mod is exactly the classic steps→EXP experience.
   full moveset opens the game's own "forget which move?" menu, so
   nothing is ever forgotten without asking.
 
-## The watt economy (v0.3.0 — all opt-in)
+## The watt economy
 
 Turn on **WATTS** and steps also charge a currency, 20 steps = 1W,
 spent in a **WALKER** entry that appears in the START menu. Balance
@@ -154,17 +159,20 @@ your last in-game SAVE is lost if you quit without saving.
 ## Requirements
 
 The Lua mod is platform-neutral, but it feeds on a **native step
-bridge** that ships in iOS and Android builds of the fork this mod comes
-from. Without the bridge the mod loads and stays dormant — safe to
-install anywhere.
+bridge**, now part of mainline gen1recomp:
 
-**Upstream status:** the iOS bridge (with the rest of the iOS support)
-was **merged into mainline gen1recomp** in
-[bryanthaboi/gen1recomp#452](https://github.com/bryanthaboi/gen1recomp/pull/452)
-(2026-07-30). Once that reaches an official release, iOS builds made
-from upstream itself run this mod as-is. The Android step bridge is not
-upstream (yet) — Android needs the build from this project's source
-branch below.
+- **iOS** — merged in
+  [#452](https://github.com/bryanthaboi/gen1recomp/pull/452), shipping
+  in official releases.
+- **Android** —
+  [#489](https://github.com/bryanthaboi/gen1recomp/pull/489), in the
+  next release once merged.
+- ([#464](https://github.com/bryanthaboi/gen1recomp/pull/464) made this
+  repo the mod's canonical home — apps ship the bridge, this repo ships
+  the mod.)
+
+Without a bridge (desktop builds, older releases) the mod loads and
+stays dormant — safe to install anywhere.
 
 **Why a bridge at all?** A mod alone genuinely cannot do this. Mods are
 Lua inside the LÖVE runtime: there is no sensor or HealthKit API exposed
@@ -190,14 +198,16 @@ Any platform can light this mod up by providing:
   never delivered twice, and **merge** with an unconsumed pending file
   rather than overwriting it. The mod consumes and deletes the file.
 
-Two reference implementations exist:
+Two reference implementations live in mainline gen1recomp:
 
 - **iOS** — a small Swift class (HealthKit `HKStatisticsQuery` over
-  `stepCount`) reached from `wrap_System.cpp` via the ObjC runtime.
+  `stepCount`) reached from `wrap_System.cpp` via the ObjC runtime
+  ([#452](https://github.com/bryanthaboi/gen1recomp/pull/452)).
 - **Android** — a `GameActivity` method reading the hardware
   `TYPE_STEP_COUNTER` sensor (cumulative since boot, anchored in
   SharedPreferences; reboot detection re-anchors without crediting),
-  reached over JNI like love-android's existing SAF picker.
+  reached over JNI like love-android's existing SAF picker
+  ([#489](https://github.com/bryanthaboi/gen1recomp/pull/489)).
 
 Open an issue here if you're porting the bridge to another platform.
 
@@ -225,15 +235,18 @@ only.)
 
 ## Source & provenance
 
-The buildable source for both app builds is the
+This repo is the mod's canonical home. The native bridges it depends on
+were contributed to
+[bryanthaboi/gen1recomp](https://github.com/bryanthaboi/gen1recomp)
+directly: iOS support in
+[#452](https://github.com/bryanthaboi/gen1recomp/pull/452) (merged
+2026-07-30), the Android step bridge in
+[#489](https://github.com/bryanthaboi/gen1recomp/pull/489), with
+[#464](https://github.com/bryanthaboi/gen1recomp/pull/464) moving the
+mod itself out of the upstream tree and into this repo. The historical
 [`pokewalker-bridges`](https://github.com/mresnick67/gen1recomp/tree/pokewalker-bridges)
-branch of [mresnick67/gen1recomp](https://github.com/mresnick67/gen1recomp),
-**forked from [bryanthaboi/gen1recomp](https://github.com/bryanthaboi/gen1recomp)
-`dev` @ [`eef6d8a`](https://github.com/bryanthaboi/gen1recomp/commit/eef6d8a368164f610d13303b2418811781eb2654)**
-(2026-07-30). It adds only: the iOS native bridge + build fixes (since merged
-upstream as
-[#452](https://github.com/bryanthaboi/gen1recomp/pull/452)), the Android
-step bridge, this mod, and the two install guides. Everything else is
+branch (this fork's original combined source for both app builds)
+remains available; everything on it besides the bridges and this mod is
 untouched upstream code.
 
 ## License
