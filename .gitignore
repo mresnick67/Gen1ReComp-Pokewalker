@@ -1,0 +1,2 @@
+# release artifacts live in GitHub Releases, not git
+*.modpkg
