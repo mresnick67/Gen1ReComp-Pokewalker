@@ -1,7 +1,5 @@
 # Pokéwalker (Step Sync) — a Gen1Recomp mod
 
-Disclaimer: This project was created entirely with AI. 
-
 Your real-world steps become EXP for your Pokémon party — the HeartGold/
 SoulSilver Pokéwalker, except it's the phone already in your pocket.
 
@@ -18,7 +16,7 @@ Which file you need:
 
 | File | Who it's for |
 |---|---|
-| `pokewalker-<version>.modpkg` | The mod itself (all platforms). Skip it if you use the app build below — it ships the mod pre-installed. |
+| `pokewalker-<version>.zip` | The mod itself (all platforms). Skip it if you use the app build below — it ships the mod pre-installed. |
 | `gen1recomp-android.apk` | **Android**: the full game app with the step bridge *and this mod already inside*. Sideload it and you're done. Or build it yourself (below). |
 
 **iOS** follows the same convention as the original project — no
@@ -39,8 +37,8 @@ on that branch. Android builders: same branch,
 
 Installing just the mod into an existing app or desktop build:
 
-- **In the launcher:** MODS tab → **Import mod .zip** → pick the
-  `.modpkg` (it's a normal zip), or drag it onto the window on desktop.
+- **In the launcher:** MODS tab → **Import mod .zip** → pick the zip,
+  or drag it onto the window on desktop.
 - **iOS:** you can also drop the zip into the app's folder in the Files
   app; it installs on next launch.
 
@@ -142,8 +140,13 @@ imported data cache:
 ```sh
 luajit mods/pokewalker/tests/pokewalker_test.lua
 python3 tools/modkit.py validate mods/pokewalker --base imported
-python3 tools/modkit.py pack mods/pokewalker
+python3 tools/modkit.py pack mods/pokewalker -o pokewalker-<version>.zip
 ```
+
+(`pack` defaults to a `.modpkg` extension; releases here use `-o` to
+ship the community-standard `.zip`, which is also what the game's
+drag-and-drop and Files/USB drop-in scans accept — they match `*.zip`
+only.)
 
 ## Source & provenance
 
