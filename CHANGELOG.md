@@ -3,6 +3,16 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.2] - 2026-08-01
+
+### Added
+
+- **In-app updates.** The manifest now declares its GitHub repository
+  (`"github": "mresnick67/Gen1ReComp-Pokewalker"`), so the launcher's
+  MODS panel can offer **Update** and **Versions** for installed copies,
+  and the community mod index tracks new releases automatically. No
+  gameplay changes.
+
 ## [0.3.1] - 2026-08-01
 
 ### Fixed
