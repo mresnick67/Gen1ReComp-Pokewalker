@@ -7,15 +7,12 @@ SoulSilver Pokéwalker, except it's the phone already in your pocket.
 
 A mod for [gen1recomp](https://github.com/bryanthaboi/gen1recomp)
 (the Gen 1 Recompilation Project). The native step bridges this mod
-relies on are **part of the main project now**: the iOS bridge was
-merged in
-[bryanthaboi/gen1recomp#452](https://github.com/bryanthaboi/gen1recomp/pull/452)
-and already ships in official releases; the Android bridge is
-[bryanthaboi/gen1recomp#489](https://github.com/bryanthaboi/gen1recomp/pull/489)
-and should be in the next release after it lands. No patched or
-sideloaded custom builds needed — official gen1recomp builds run this
-mod as-is. It's opt-in, data-safe, and dormant on any platform without
-a bridge (desktop included — see [Requirements](#requirements)).
+relies on are **part of the main project** and ship in the official
+releases: **v0.1.45 or later on iOS**, **v0.1.51 or later on
+Android**. No patched or sideloaded custom builds needed — official
+gen1recomp builds run this mod as-is. It's opt-in, data-safe, and
+dormant on any platform without a bridge (desktop included — see
+[Requirements](#requirements)).
 
 ## Install
 
@@ -27,12 +24,6 @@ and an iOS IPA (see upstream's
 for installing it), alongside the desktop builds. iOS can also be built
 from source with your own free Apple ID
 ([`docs/ios-install.md`](https://github.com/bryanthaboi/gen1recomp/blob/main/docs/ios-install.md)).
-
-> **Android, until #489 ships in a release:** the official APK doesn't
-> expose steps yet. Grab the release here that still attaches
-> `gen1recomp-android.apk`, or build from the
-> [`pokewalker-bridges`](https://github.com/mresnick67/gen1recomp/tree/pokewalker-bridges)
-> branch.
 
 **2. Get the mod** — `pokewalker-<version>.zip` from this repo's
 [Releases page](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases)
@@ -159,17 +150,10 @@ your last in-game SAVE is lost if you quit without saving.
 ## Requirements
 
 The Lua mod is platform-neutral, but it feeds on a **native step
-bridge**, now part of mainline gen1recomp:
+bridge**, part of mainline gen1recomp:
 
-- **iOS** — merged in
-  [#452](https://github.com/bryanthaboi/gen1recomp/pull/452), shipping
-  in official releases.
-- **Android** —
-  [#489](https://github.com/bryanthaboi/gen1recomp/pull/489), in the
-  next release once merged.
-- ([#464](https://github.com/bryanthaboi/gen1recomp/pull/464) made this
-  repo the mod's canonical home — apps ship the bridge, this repo ships
-  the mod.)
+- **iOS** — official release **v0.1.45 or later**.
+- **Android** — official release **v0.1.51 or later**.
 
 Without a bridge (desktop builds, older releases) the mod loads and
 stays dormant — safe to install anywhere.
@@ -241,7 +225,8 @@ were contributed to
 directly: iOS support in
 [#452](https://github.com/bryanthaboi/gen1recomp/pull/452) (merged
 2026-07-30), the Android step bridge in
-[#489](https://github.com/bryanthaboi/gen1recomp/pull/489), with
+[#489](https://github.com/bryanthaboi/gen1recomp/pull/489) (merged
+2026-08-01), with
 [#464](https://github.com/bryanthaboi/gen1recomp/pull/464) moving the
 mod itself out of the upstream tree and into this repo. The historical
 [`pokewalker-bridges`](https://github.com/mresnick67/gen1recomp/tree/pokewalker-bridges)

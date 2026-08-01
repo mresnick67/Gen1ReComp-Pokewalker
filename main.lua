@@ -42,6 +42,10 @@ return function(mod)
   local Growth = require("src.pokemon.Growth")
   local Stats = require("src.pokemon.Stats")
   local game
+  -- Clock seam shared with Economy (see mod.exports.setNow): os.time in
+  -- production, injectable so tests can drive the sync throttle below and
+  -- streak days without sleeping.
+  local now = os.time
 
   -- ------- sibling modules
   -- mod:read + load keeps them addressable through the loader's filesystem
@@ -94,8 +98,30 @@ return function(mod)
 
   -- Ask the native side to refresh steps_pending.json.  Async: results are
   -- picked up by a later consume() (next map change / battle end).
-  local function requestSync()
-    if active() then love.system.syncHealthSteps() end
+  --
+  -- Throttled: sync events can land seconds apart (game.ready, then
+  -- save.loaded as CONTINUE restores; option toggles in one settings
+  -- visit), and iOS app builds (v0.1.51 as of this writing) double-credit
+  -- when native syncs overlap -- the bridge re-reads the same anchor while
+  -- an earlier query is still in flight, and its pending-file merge adds
+  -- the duplicated window.  Keeping requests a cooldown apart keeps them
+  -- farther apart than any query's lifetime.  Skipped requests lose
+  -- nothing: the native anchor only advances when a sync runs, so the
+  -- next allowed sync covers the whole gap.  `force` (flipping SYNC
+  -- STEPS on) bypasses the throttle so the permission sheet still
+  -- appears the moment the option is enabled.
+  local SYNC_COOLDOWN = 30 -- seconds; far beyond any native query's lifetime
+  local lastSyncRequest
+  local function requestSync(force)
+    if not active() then return end
+    local t = now()
+    -- A negative delta means the wall clock moved backwards (time zone,
+    -- manual change): treat it as expired rather than jamming the
+    -- throttle shut until the clock catches back up.
+    local dt = lastSyncRequest and t - lastSyncRequest
+    if not force and dt and dt >= 0 and dt < SYNC_COOLDOWN then return end
+    lastSyncRequest = t
+    love.system.syncHealthSteps()
   end
 
   -- Add EXP to one mon, bumping levels with the engine's own stat math
@@ -317,6 +343,7 @@ return function(mod)
   mod.exports.milestones = Gifts and Gifts.MILESTONES or nil
   mod.exports.catalog = Shop and Shop.CATALOG or nil
   mod.exports.setNow = function(fn)
+    now = fn or os.time
     if Economy then Economy.now = fn end
   end
 
@@ -334,7 +361,14 @@ return function(mod)
   -- Quiet moments where a walk report can safely appear.
   mod.events:on("map.entered", function() consume() end)
   mod.events:on("battle.ended", function() consume() end)
-  -- Flipping SYNC STEPS on triggers the HealthKit permission sheet
-  -- immediately rather than on the next boot.
-  mod.events:on("mod.options_changed", function() requestSync() end)
+  -- Flipping SYNC STEPS on forces a sync so the HealthKit permission
+  -- sheet appears immediately rather than on the next boot; every other
+  -- option change goes through the throttle (its sync was only ever a
+  -- freshness nicety, and unthrottled toggle bursts are one of the
+  -- overlap patterns the throttle exists to prevent).
+  mod.events:on("mod.options_changed", function(p)
+    local enabledFlippedOn = p ~= nil and p.mod == mod.id
+      and p.key == "enabled" and p.value == true
+    requestSync(enabledFlippedOn)
+  end)
 end

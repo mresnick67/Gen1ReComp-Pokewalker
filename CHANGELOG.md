@@ -3,6 +3,24 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1] - 2026-08-01
+
+### Fixed
+
+- **Step double-crediting on iOS.** Sync requests are now throttled to
+  one per 30 seconds. iOS app builds (v0.1.51 as of this writing) can
+  double-credit steps when two native syncs overlap: the bridge
+  re-reads the same
+  HealthKit anchor while an earlier query is still in flight, and its
+  pending-file merge adds the duplicated window together. The mod used
+  to request a sync from several events that land seconds apart (boot,
+  then save load; every option toggle), which is exactly that overlap
+  pattern. Skipped requests lose no steps — the native anchor only
+  advances when a sync runs, so the next allowed sync covers the whole
+  gap. Flipping SYNC STEPS on still syncs immediately (the permission
+  sheet appears the moment you enable it). Already-inflated totals are
+  not retroactively corrected.
+
 ## [0.3.0] - 2026-07-30
 
 ### Added

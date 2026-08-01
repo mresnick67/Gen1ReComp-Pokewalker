@@ -451,6 +451,33 @@ for _, text in ipairs(shown) do
   end
 end
 
+-- ------- v0.3.1: sync throttle (driven clock)
+-- Sync events seconds apart must reach the native bridge once: iOS app
+-- builds (v0.1.51 as of this writing) double-credit when syncs overlap
+-- (the bridge re-reads the same anchor while a query is in flight and
+-- its pending-file merge adds the duplicate).  The SYNC STEPS enable
+-- toggle bypasses the throttle so the permission sheet stays immediate.
+
+local tclock = 100000 -- rebased below every earlier os.time() stamp:
+                      -- a backward clock jump must count as expired
+exportsPW.setNow(function() return tclock end)
+local base = syncCalls
+events:emit("game.ready", { game = game })
+T.eq(syncCalls, base + 1, "first request (after a backward jump) syncs")
+tclock = tclock + 3
+events:emit("save.loaded", {})
+T.eq(syncCalls, base + 1, "save.loaded 3s after boot is throttled")
+tclock = tclock + 3
+events:emit("mod.options_changed",
+  { mod = "pokewalker", key = "watts", value = true })
+T.eq(syncCalls, base + 1, "ordinary option toggles are throttled")
+events:emit("mod.options_changed",
+  { mod = "pokewalker", key = "enabled", value = true })
+T.eq(syncCalls, base + 2, "flipping SYNC STEPS on bypasses the throttle")
+tclock = tclock + 31
+events:emit("save.loaded", {})
+T.eq(syncCalls, base + 3, "an expired cooldown lets the next event sync")
+
 package.loaded["src.render.TextBox"] = savedTextBox
 package.loaded["src.ui.Screens"] = savedScreens
 package.loaded["src.core.Music"] = savedMusic
