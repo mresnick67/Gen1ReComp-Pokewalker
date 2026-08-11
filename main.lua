@@ -42,6 +42,11 @@ return function(mod)
   local Growth = require("src.pokemon.Growth")
   local Stats = require("src.pokemon.Stats")
   local game
+  -- Which generation the running game is.  Gold's ROM extractor writes
+  -- constants.generation = 2; Gen 1 datasets (and older engines) carry
+  -- nothing, so the default is 1.  Set in game.ready, before any credit.
+  local gen = 1
+  local function isGen2() return gen >= 2 end
   -- Clock seam shared with Economy (see mod.exports.setNow): os.time in
   -- production, injectable so tests can drive the sync throttle below and
   -- streak days without sleeping.
@@ -125,9 +130,23 @@ return function(mod)
   end
 
   -- Add EXP to one mon, bumping levels with the engine's own stat math
-  -- (mirrors the rare-candy path in src/inventory/ItemEffects.lua).
-  -- Returns the EXP actually absorbed and any levels gained.
+  -- (mirrors the rare-candy path in src/inventory/ItemEffects.lua).  On
+  -- Gold the field is mon.experience and the stat builder has its own
+  -- signature, so src/battle/gen2/Mon.gainExperience owns the whole hop --
+  -- cap, stats, HP delta -- and reports the level-up move ids itself.
+  -- Returns the EXP actually absorbed, the levels gained, and (Gen 2 only)
+  -- the level-up move ids; nil learned means "look them up per level".
   local function applyToMon(mon, xp, data)
+    if isGen2() then
+      local Mon2 = require("src.battle.gen2.Mon")
+      local before = mon.experience or 0
+      local res = Mon2.gainExperience(mon, xp, data)
+      local levels = {}
+      if (res.levels or 0) > 0 then
+        for level = res.from + 1, res.to do levels[#levels + 1] = level end
+      end
+      return (mon.experience or 0) - before, levels, res.learned or {}
+    end
     local def = data.pokemon[mon.species]
     if not def or not mon.level then return 0, {} end
     local cap = (data.constants and data.constants.levelCap) or 100
@@ -173,6 +192,37 @@ return function(mod)
     return mon.nickname or (def and def.name) or mon.species
   end
 
+  -- Gold has no MoveLearnMenu screen (the Gen2* builtins carry no move-learn
+  -- picker), so the "forget which move?" choice is recreated from the mod's
+  -- own widgets.  B keeps the old moveset, like the vanilla flow's NO.
+  local function promptForget(mon, moveId, mdef, data, onDone)
+    local Strings = require("src.core.Strings")
+    local TextBox = require("src.render.TextBox")
+    local entries = {}
+    for slot, mv in ipairs(mon.moves) do
+      local cur = data.moves[mv.id]
+      entries[#entries + 1] = {
+        label = (cur and cur.name) or mv.id,
+        onSelect = function()
+          mon.moves[slot] = { id = moveId, pp = mdef.pp, maxPp = mdef.pp }
+          game.stack:push(TextBox.new(game,
+            Strings("1, 2 and...\nPoof!\f%s learned\n%s!",
+                    monName(mon, data), mdef.name), onDone))
+        end,
+      }
+    end
+    game.stack:push(TextBox.new(game,
+      Strings("%s wants\nto learn:\f%s!\nForget a move?",
+              monName(mon, data), mdef.name), function()
+      local menu = mod.ui.Menu.new(game, entries, { tx = 2, ty = 2, tw = 14 })
+      menu.onCancel = function()
+        game.stack:push(TextBox.new(game,
+          Strings("%s was\nnot learned.", mdef.name), onDone))
+      end
+      game.stack:push(menu)
+    end))
+  end
+
   -- One learn step at a time, BagMenu-style: the chain owns its own
   -- continuation so a MoveLearnMenu can sit between two auto-learns.
   -- onDone fires after the last step so evolutions/gifts can follow.
@@ -194,15 +244,70 @@ return function(mod)
       local mdef = data.moves[moveId]
       if not mdef then return nextStep() end
       if #mon.moves < 4 then
-        table.insert(mon.moves, { id = moveId, pp = mdef.pp })
+        if isGen2() then
+          -- the engine's single teaching choke point; emits
+          -- pokemon.move_learned like the battle path does
+          require("src.battle.gen2.Mon").learnMove(mon, moveId, data)
+        else
+          table.insert(mon.moves, { id = moveId, pp = mdef.pp })
+        end
         game.stack:push(TextBox.new(game,
           Strings("%s learned\n%s!", monName(mon, data), mdef.name), nextStep))
+      elseif isGen2() then
+        promptForget(mon, moveId, mdef, data, nextStep)
       else
         require("src.ui.Screens").push(game, "MoveLearnMenu", mon, moveId,
                                        nextStep)
       end
     end
     nextStep()
+  end
+
+  -- Gold's evolution flow: plan the leveled slots, then chain the engine's
+  -- own Gen2EvolutionAnim one slot at a time, exactly as the Gen 2
+  -- BattleState:nextEvolution does.  The screen applies the evolution,
+  -- writes the party slot back, ticks the pokedex and teaches the new
+  -- form's level moves itself.  pcall-guarded: an engine-contract drift
+  -- degrades to "no evolution this credit", never a broken credit.
+  local function runGen2Evolutions(leveled, onDone)
+    local ok, plans = pcall(function()
+      local Evolution = require("src.core.gen2.Evolution")
+      local flags = {}
+      for index, mon in ipairs(game.save.party) do
+        if leveled[mon] then flags[index] = true end
+      end
+      local Palettes = require("src.world.gen2.Palettes")
+      return Evolution.plan(game.data, game.save.party, flags,
+                            { timeOfDay = Palettes.clockDaytime() })
+    end)
+    if not ok or type(plans) ~= "table" then
+      mod.log:warn("gen2 evolution check unavailable; skipping (%s)",
+                   tostring(plans))
+      return onDone()
+    end
+    local Screens = require("src.ui.Screens")
+    local i = 0
+    local function nextEvolution()
+      i = i + 1
+      local plan = plans[i]
+      if not plan then return onDone() end
+      local pushOk, pushErr = pcall(Screens.push, game, "Gen2EvolutionAnim", {
+        mon = plan.mon,
+        entry = plan.entry,
+        index = plan.index,
+        party = game.save.party,
+        save = game.save,
+        onDone = function()
+          game.stack:pop()
+          nextEvolution()
+        end,
+      })
+      if not pushOk then
+        mod.log:warn("gen2 evolution anim failed: %s", tostring(pushErr))
+        return onDone()
+      end
+    end
+    nextEvolution()
   end
 
   local function consume()
@@ -244,7 +349,9 @@ return function(mod)
     local total, pages, learnQueue = 0, {}, {}
     local leveled = {}
     local Strings = require("src.core.Strings")
-    local Experience = require("src.battle.Experience")
+    -- Gen 1 only: Gold has no backing for src.battle.Experience, and its
+    -- gainExperience reports the learnable moves itself
+    local Experience = not isGen2() and require("src.battle.Experience") or nil
     local targets = {}
     local toParty = mod.options:get("target") == "party"
     if toParty then
@@ -256,16 +363,22 @@ return function(mod)
       local share = math.max(1, math.floor(xp / #targets))
       for _, mon in ipairs(targets) do
         local fromLevel = mon.level
-        local absorbed, levels = applyToMon(mon, share, data)
+        local absorbed, levels, learned = applyToMon(mon, share, data)
         total = total + absorbed
         if #levels > 0 then
           leveled[mon] = true
           pages[#pages + 1] = Strings("%s grew\nto level %d!",
                                       monName(mon, data), mon.level)
-          local def = data.pokemon[mon.species]
-          for level = fromLevel + 1, mon.level do
-            for _, moveId in ipairs(Experience.movesLearnedAt(def, level)) do
+          if learned then
+            for _, moveId in ipairs(learned) do
               learnQueue[#learnQueue + 1] = { mon = mon, move = moveId }
+            end
+          else
+            local def = data.pokemon[mon.species]
+            for level = fromLevel + 1, mon.level do
+              for _, moveId in ipairs(Experience.movesLearnedAt(def, level)) do
+                learnQueue[#learnQueue + 1] = { mon = mon, move = moveId }
+              end
             end
           end
         end
@@ -311,8 +424,12 @@ return function(mod)
           if giftNext then Gifts.grant(mod, game, giftNext) end
         end
         if next(leveled) then
-          require("src.pokemon.Evolution").checkParty(game, afterEvolutions,
-                                                      leveled)
+          if isGen2() then
+            runGen2Evolutions(leveled, afterEvolutions)
+          else
+            require("src.pokemon.Evolution").checkParty(game, afterEvolutions,
+                                                        leveled)
+          end
         else
           afterEvolutions()
         end
@@ -347,10 +464,54 @@ return function(mod)
     if Economy then Economy.now = fn end
   end
 
+  -- Per-generation content: swap the Johto tables in on Gold and audit
+  -- every content id the active tables name against the running game's
+  -- data, so a missing species or item is a logged warning at boot rather
+  -- than a silent no-op (or a crash) at grant time.
+  local function selectContent()
+    local key = isGen2() and "gen2" or "gen1"
+    if Radar and Radar.select then Radar.select(key) end
+    if Gifts and Gifts.select then Gifts.select(key) end
+    if Shop and Shop.select then Shop.select(key) end
+    mod.exports.milestones = Gifts and Gifts.MILESTONES or nil
+    local data = game and game.data
+    if not data then return end
+    local function audit(kind, registry, id)
+      if id and registry and not registry[id] then
+        mod.log:warn("%s id %s missing from this game's data; that entry "
+                     .. "cannot be granted", kind, tostring(id))
+      end
+    end
+    if Radar then
+      local set = Radar.SETS[key]
+      for _, pool in pairs(set.POOLS) do
+        for _, e in ipairs(pool) do audit("radar", data.pokemon, e.species) end
+      end
+      for _, name in ipairs({ "BIRDS", "WATER", "INDOOR", "APEX" }) do
+        for _, e in ipairs(set[name] or {}) do
+          audit("radar", data.pokemon, e.species)
+        end
+      end
+    end
+    if Gifts then
+      for _, m in ipairs(Gifts.MILESTONES) do
+        audit("gift", data.pokemon, m.species)
+        for _, s in ipairs(m.choice or {}) do audit("gift", data.pokemon, s) end
+      end
+    end
+    if Shop then
+      for _, row in ipairs(Shop.CATALOG) do audit("shop", data.items, row.item) end
+      for _, sid in ipairs(Shop.STONES) do audit("shop", data.items, sid) end
+    end
+  end
+
   -- game.ready is the sanctioned way to obtain the Game object; the party
   -- only exists once a save is loaded or created.
   mod.events:on("game.ready", function(payload)
     game = payload.game
+    gen = (game.data and game.data.constants
+           and game.data.constants.generation) or 1
+    selectContent()
     requestSync()
   end)
   mod.events:on("save.loaded", function()

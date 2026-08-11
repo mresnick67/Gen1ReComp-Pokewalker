@@ -31,9 +31,24 @@ Shop.CATALOG = {
   { radar = "DIAMOND", label = "DMND RADAR", watts = 10000 },
 }
 
-Shop.STONES = {
-  "FIRE_STONE", "WATER_STONE", "THUNDER_STONE", "LEAF_STONE", "MOON_STONE",
+-- Per-generation stone list: Gold keeps every Gen 1 stone and adds the
+-- SUN STONE.  main.lua's selectContent() calls Shop.select() at
+-- game.ready; Gen 1 is the default so nothing changes before it.
+Shop.STONES_BY_GEN = {
+  gen1 = {
+    "FIRE_STONE", "WATER_STONE", "THUNDER_STONE", "LEAF_STONE", "MOON_STONE",
+  },
+  gen2 = {
+    "FIRE_STONE", "WATER_STONE", "THUNDER_STONE", "LEAF_STONE", "MOON_STONE",
+    "SUN_STONE",
+  },
 }
+
+Shop.STONES = Shop.STONES_BY_GEN.gen1
+
+function Shop.select(key)
+  Shop.STONES = Shop.STONES_BY_GEN[key] or Shop.STONES_BY_GEN.gen1
+end
 
 local function itemName(game, id)
   local def = game.data.items[id]
@@ -98,7 +113,7 @@ local function newShop(mod, game)
             local cost = qty * row.watts
             confirmThen(cost,
               Strings("%s x%d?\n%dW. OK?", item.label, qty, cost), function()
-              if not Bag.add(game.save, row.item, qty) then
+              if not Bag.add(game.save, row.item, qty, game.data) then
                 list.footer = bagFull
                 return
               end
@@ -116,7 +131,7 @@ local function newShop(mod, game)
               confirmThen(row.watts,
                 Strings("%s?\n%dW. OK?", itemName(game, sid), row.watts),
                 function()
-                  if not Bag.add(game.save, sid, 1) then
+                  if not Bag.add(game.save, sid, 1, game.data) then
                     list.footer = bagFull
                     return
                   end
@@ -170,6 +185,14 @@ function Shop.register(mod)
   mod.content.screens:register("PokewalkerMenu", {
     new = function(game)
       local Screens = require("src.ui.Screens")
+      -- Gold registers its builtins under Gen2-prefixed ids with no
+      -- aliasing, so the way back to the start menu is per-generation.
+      -- The Gen 1 id is sliced off the Gen 2 literal rather than written
+      -- bare: both generations are genuinely handled here, and the bare
+      -- literal reads to gen2check as an unported screen id (MK409).
+      local startMenuId = (((game.data.constants
+        and game.data.constants.generation) or 1) >= 2)
+        and "Gen2StartMenu" or ("Gen2StartMenu"):sub(5)
       -- mart pattern: keepOpen rows push above this menu, so closing the
       -- shop or card lands back here; EXIT (or B) reopens the start menu
       local menu = mod.ui.Menu.new(game, {
@@ -178,9 +201,9 @@ function Shop.register(mod)
         { label = Strings("TRAINER CARD"), keepOpen = true,
           onSelect = function() mod.ui.push(game, "PokewalkerCard") end },
         { label = Strings("EXIT"),
-          onSelect = function() Screens.push(game, "StartMenu") end },
+          onSelect = function() Screens.push(game, startMenuId) end },
       }, { tx = 0, ty = 0, tw = 16 })
-      menu.onCancel = function() Screens.push(game, "StartMenu") end
+      menu.onCancel = function() Screens.push(game, startMenuId) end
       return menu
     end,
   })

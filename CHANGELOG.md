@@ -3,6 +3,39 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.0] - 2026-08-11
+
+### Added
+
+- **Gen 2 (Gold) support** for gen1recomp's new Gold beta engine
+  (v0.1.78+). The manifest declares `"games": ["gen1", "gen2"]`; on a
+  Gold save the whole mod runs — steps→EXP, watts, shop, streaks, radar,
+  gifts, trainer card — through the Gen 2 engine's own primitives
+  (`mon.experience`, Gold's stat builder, its move-teaching choke point,
+  and the real evolution movie).
+- **Johto content on Gold.** Radar pools go Johto (Dunsparce line
+  uncommons; Misdreavus/Skarmory/Heracross/Larvitar plus the three Johto
+  starters), the GOLD radar holds **all six** birds AND beasts
+  (terrain-flavored: surf rolls Articuno or Suicune, caves Moltres or
+  Entei), and the DIAMOND radar is a five-way apex pool — Celebi, Ho-Oh,
+  Lugia, Mew, Mewtwo. The milestone ladder walks Johto (Togepi at 10k,
+  Elekid-or-Magby, Smeargle, Shuckle, Miltank, Larvitar, Celebi at
+  300k), and the stone shop adds the SUN STONE. Gen 1 saves keep every
+  original table.
+- **Content-id audit.** At boot the active generation's radar pools,
+  milestone ladder and shop catalog are checked against the running
+  game's data; anything missing degrades to a logged warning instead of
+  a silent no-op.
+
+### Notes
+
+- Gold fires the radar's encounter hook from grass and surf steps only
+  (no headbutt/rock-smash/roamer hooks yet, an engine limitation).
+- Gold has no move-learn screen, so a full moveset opens the mod's own
+  "forget a move?" picker; the same flow otherwise.
+- Needs a gen1recomp build at v0.1.78 or later for Gold; Gen 1 behavior
+  is unchanged on any engine version.
+
 ## [0.3.2] - 2026-08-01
 
 ### Added

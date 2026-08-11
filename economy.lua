@@ -85,7 +85,7 @@ function Economy.credit(mod, game, steps, opts)
       end
       if streak == Economy.BALL_STREAK then
         local Bag = require("src.inventory.Bag")
-        if Bag.add(game.save, "MASTER_BALL", 1) then
+        if Bag.add(game.save, "MASTER_BALL", 1, game.data) then
           pages[#pages + 1] = Strings("30 days! Here's\na MASTER BALL!")
         else
           Economy.addWatts(mod, 2500)

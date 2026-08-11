@@ -14,6 +14,12 @@ gen1recomp builds run this mod as-is. It's opt-in, data-safe, and
 dormant on any platform without a bridge (desktop included — see
 [Requirements](#requirements)).
 
+**Gen 2 ready:** as of v1.0.0 the mod declares and supports the
+project's **Gold (Gen 2) beta** — on a Gold save the radar pools,
+milestone gifts, and stone shop go Johto ([details below](#on-gold-gen-2)),
+while Gen 1 saves keep every original table. Gold needs gen1recomp
+**v0.1.78 or later**.
+
 ## Install
 
 **1. Get the game** from the official
@@ -122,6 +128,25 @@ the battle fires, win, lose, catch, or flee. One charge at a time.
 Radar legendaries never interfere with the game's own static
 encounters — you can still have the Victory Road Moltres too.
 
+### On Gold (Gen 2)
+
+The same shop, Johto flavor:
+
+- **BLUE** — Dunsparce, Yanma, Aipom, Gligar, Phanpy
+- **SILVER** — Misdreavus, Skarmory, Heracross, Larvitar, plus the
+  three Johto starters
+- **GOLD** — **all six**: the legendary birds *and* the legendary
+  beasts at Lv.50, terrain-flavored (surfing rolls Articuno or Suicune,
+  caves roll Moltres or Entei)
+- **DIAMOND** — one of the five apex legendaries: Celebi Lv.30, Ho-Oh
+  Lv.70, Lugia Lv.70, Mew Lv.30, or Mewtwo Lv.70
+
+The stone row adds the **SUN STONE**, and the gift ladder walks Johto —
+Togepi at 10k, Elekid *or* Magby at 25k, Smeargle, Shuckle, Miltank,
+Larvitar, and Celebi at 300k. On Gold the radar fires on grass and surf
+steps (the engine's Gold beta has no headbutt/rock-smash/roamer hooks
+yet).
+
 **STREAKS**: hit your DAILY GOAL on consecutive days and both EXP and
 watt earnings multiply — ×1.1 at 3 days, ×1.25 at 7, ×1.5 at 14, ×2 at
 30 (cap). Every completed week pays +500W, and day 30 hands you a free
@@ -133,15 +158,15 @@ streak and keep the shield.
 starts counting **when you enable the option** — nothing is granted
 retroactively.
 
-| Journey steps | Gift |
-|---|---|
-| 10,000 | Eevee Lv.5 |
-| 25,000 | Hitmonlee *or* Hitmonchan Lv.20 |
-| 50,000 | Porygon Lv.15 |
-| 100,000 | Lapras Lv.15 |
-| 150,000 | Snorlax Lv.30 |
-| 200,000 | Aerodactyl Lv.30 |
-| 300,000 | Mew Lv.5 |
+| Journey steps | Gift (Gen 1) | Gift (Gold) |
+|---|---|---|
+| 10,000 | Eevee Lv.5 | Togepi Lv.5 |
+| 25,000 | Hitmonlee *or* Hitmonchan Lv.20 | Elekid *or* Magby Lv.20 |
+| 50,000 | Porygon Lv.15 | Smeargle Lv.15 |
+| 100,000 | Lapras Lv.15 | Shuckle Lv.15 |
+| 150,000 | Snorlax Lv.30 | Miltank Lv.30 |
+| 200,000 | Aerodactyl Lv.30 | Larvitar Lv.30 |
+| 300,000 | Mew Lv.5 | Celebi Lv.5 |
 
 Watts, streaks, and journey progress live inside your game save: they
 travel with it, and — like the EXP credit itself — anything banked since
@@ -154,6 +179,9 @@ bridge**, part of mainline gen1recomp:
 
 - **iOS** — official release **v0.1.45 or later**.
 - **Android** — official release **v0.1.51 or later**.
+- **Gold (Gen 2) saves** — official release **v0.1.78 or later** (the
+  first with the Gold beta's mod adapter). Gen 1 saves work on all the
+  versions above.
 
 Without a bridge (desktop builds, older releases) the mod loads and
 stays dormant — safe to install anywhere.
@@ -208,6 +236,8 @@ imported data cache:
 
 ```sh
 luajit mods/pokewalker/tests/pokewalker_test.lua
+luajit mods/pokewalker/tests/pokewalker_gen2_test.lua
+python3 tools/modkit.py gen2check mods/pokewalker --strict --notes
 python3 tools/modkit.py validate mods/pokewalker --base imported
 python3 tools/modkit.py pack mods/pokewalker -o pokewalker-<version>.zip
 ```

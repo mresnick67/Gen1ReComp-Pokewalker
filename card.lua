@@ -14,8 +14,10 @@ function Card.register(mod, deps)
       local Font = mod.ui.Font
       local self = { isOpaque = true }
       function self:update(dt)
+        -- nil-guarded: on Gold the Game facade serves input, but a missing
+        -- member must not strand the player on this screen with a crash
         local input = game.input
-        if input:wasPressed("a") or input:wasPressed("b") then
+        if input and (input:wasPressed("a") or input:wasPressed("b")) then
           game.stack:pop()
         end
       end

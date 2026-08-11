@@ -312,7 +312,7 @@ T.eq(game.save.inventory.WATER_STONE, 1, "the chosen stone is granted")
 T.eq(modSave.watts, wattsBefore - 1000, "stones cost a flat 1000W")
 
 local filler = 1
-while Bag.slots(game.save) < Bag.CAPACITY do
+while Bag.slots(game.save) < Bag.capacity(game.data) do
   Bag.add(game.save, "FILLER_" .. filler, 1)
   filler = filler + 1
 end

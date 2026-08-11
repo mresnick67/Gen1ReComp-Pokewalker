@@ -1,11 +1,12 @@
 {
   "id": "pokewalker",
   "name": "Pokewalker (Step Sync)",
-  "version": "0.3.2",
+  "version": "1.0.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "category": "MECHANIC",
+  "games": ["gen1", "gen2"],
   "game_version": ">=0.0.0-0 <2.0.0",
   "permissions": [
     "network",
