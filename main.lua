@@ -10,7 +10,9 @@
 -- Opt-in: everything is inert until SYNC STEPS is enabled in this mod's
 -- options (the HealthKit permission sheet appears on first enable).  On
 -- non-iOS platforms love.system.syncHealthSteps does not exist and the mod
--- stays dormant.
+-- stays dormant.  Sandboxed engines (mods 2026-08+) block love.system
+-- entirely; the mod is dormant there too -- see bridge() below and
+-- upstream issue #1183 for the scoped seam that will restore sync.
 --
 -- v0.3.0 adds three systems that are ALSO opt-in and default off, so an
 -- untouched install behaves exactly like v0.2.x:
@@ -97,8 +99,22 @@ return function(mod)
     bucket.lifetimeSteps = bucket.lifetimeSteps or 0
   end)
 
+  -- Bridge probe.  Three worlds: an engine with the native bridge
+  -- (love.system.syncHealthSteps is a function), one without (nil), and a
+  -- sandboxed engine (mods 2026-08+) where merely INDEXING love.system
+  -- raises.  pcall folds the third into "no bridge", so the mod is
+  -- cleanly dormant under the sandbox instead of erroring on every quiet
+  -- moment.  Upstream issue #1183 tracks the scoped seam (a
+  -- permission-gated steps event) that will re-light sync there.
+  local function bridge()
+    local ok, fn = pcall(function()
+      return love.system and love.system.syncHealthSteps
+    end)
+    return (ok and fn) or nil
+  end
+
   local function active()
-    return love.system.syncHealthSteps ~= nil and mod.options:get("enabled")
+    return bridge() ~= nil and mod.options:get("enabled")
   end
 
   -- Ask the native side to refresh steps_pending.json.  Async: results are
@@ -126,7 +142,8 @@ return function(mod)
     local dt = lastSyncRequest and t - lastSyncRequest
     if not force and dt and dt >= 0 and dt < SYNC_COOLDOWN then return end
     lastSyncRequest = t
-    love.system.syncHealthSteps()
+    local sync = bridge()
+    if sync then sync() end
   end
 
   -- Add EXP to one mon, bumping levels with the engine's own stat math

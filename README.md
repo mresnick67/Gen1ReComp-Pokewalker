@@ -225,6 +225,12 @@ Open an issue here if you're porting the bridge to another platform.
 
 ## Known limitations
 
+- **Engines with the 2026-08 mod sandbox**: the sandbox blocks the
+  seams the native step bridge lives behind, so step sync is paused
+  there — the mod stays cleanly dormant (the watt economy still runs on
+  banked steps). A scoped replacement API is tracked in
+  [bryanthaboi/gen1recomp#1183](https://github.com/bryanthaboi/gen1recomp/issues/1183)
+  and a release restoring sync will follow it.
 - Steps sync on launch/activation; no background delivery yet.
 - Progress banked since your last in-game SAVE (EXP, watts, streaks) is
   lost if you quit without saving — the game has no autosave.

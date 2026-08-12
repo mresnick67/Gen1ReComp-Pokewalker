@@ -3,6 +3,24 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.1] - 2026-08-12
+
+### Fixed
+
+- **Clean dormancy under the upcoming mod sandbox.** The engine's next
+  release runs mods in a sandbox that blocks `love.system` and
+  `love.filesystem` — the two seams the native step bridge lives behind.
+  v1.0.0 threw an error on every save-load, map change and battle end
+  there (on every platform, desktop included). v1.0.1 probes the bridge
+  safely and goes fully dormant when it is unreachable: no errors, no
+  sync, and the watt economy keeps running on your banked steps.
+  Behavior on all current and older engine releases is unchanged.
+- **Step sync itself is paused on sandboxed engines** until the engine
+  grows a scoped, permission-gated steps API — the sandbox has no
+  replacement for the bridge yet. Tracked upstream in
+  [bryanthaboi/gen1recomp#1183](https://github.com/bryanthaboi/gen1recomp/issues/1183);
+  a follow-up release will restore sync the moment that seam ships.
+
 ## [1.0.0] - 2026-08-11
 
 ### Added
