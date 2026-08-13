@@ -177,11 +177,14 @@ your last in-game SAVE is lost if you quit without saving.
 The Lua mod is platform-neutral, but it feeds on a **native step
 bridge**, part of mainline gen1recomp:
 
-- **iOS** — official release **v0.1.45 or later**.
-- **Android** — official release **v0.1.51 or later**.
-- **Gold (Gen 2) saves** — official release **v0.1.78 or later** (the
-  first with the Gold beta's mod adapter). Gen 1 saves work on all the
-  versions above.
+- **Mod v1.1.0 (this version)** needs the engine's **2026-08 sandbox
+  release or later** — it syncs through the sandbox's permission-gated
+  `mod.steps` API (the `steps` permission you see in the mod manager).
+  On older engines install
+  [v1.0.1](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases/tag/v1.0.1):
+  - **iOS** — official release **v0.1.45 or later**.
+  - **Android** — official release **v0.1.51 or later**.
+  - **Gold (Gen 2) saves** — official release **v0.1.78 or later**.
 
 Without a bridge (desktop builds, older releases) the mod loads and
 stays dormant — safe to install anywhere.

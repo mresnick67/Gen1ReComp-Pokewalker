@@ -1,18 +1,19 @@
 -- Pokéwalker: Apple Health steps become party EXP (iOS builds).
 --
--- The Swift side (mobile/ios/native/GRHealthBridge.swift) owns HealthKit:
--- love.system.syncHealthSteps() requests read access on first use, counts
--- steps since the last sync anchor, and drops steps_pending.json in the
--- save dir.  This mod consumes that file at quiet moments (save loaded, map
--- transitions, battle end), converts steps to EXP, and applies level-ups
--- with the same stat math the engine uses.
+-- The native side (HealthKit on iOS, the hardware step counter on
+-- Android) counts steps since the last sync anchor.  The engine hands the
+-- result to mods through the permission-gated mod.steps seam (RFC 0009 /
+-- upstream #1226): sync() asks the platform to refresh, poll() returns a
+-- delivery at quiet moments (save loaded, map transitions, battle end),
+-- and this mod converts it to EXP with the same stat math the engine
+-- uses.
 --
 -- Opt-in: everything is inert until SYNC STEPS is enabled in this mod's
 -- options (the HealthKit permission sheet appears on first enable).  On
--- non-iOS platforms love.system.syncHealthSteps does not exist and the mod
--- stays dormant.  Sandboxed engines (mods 2026-08+) block love.system
--- entirely; the mod is dormant there too -- see bridge() below and
--- upstream issue #1183 for the scoped seam that will restore sync.
+-- platforms without the native bridge (desktop) mod.steps:available() is
+-- false and the mod stays dormant.  Needs an engine with the "steps"
+-- permission (the 2026-08 sandbox release or later); older engines refuse
+-- the manifest, and v1.0.x remains for them.
 --
 -- v0.3.0 adds three systems that are ALSO opt-in and default off, so an
 -- untouched install behaves exactly like v0.2.x:
@@ -22,8 +23,6 @@
 --   STEP GIFTS  pokémon granted at journey-step milestones (gifts.lua)
 -- Watts and steps banked mid-session are written with the game save, so
 -- quitting without saving loses them (same as this mod's EXP credit).
-
-local PENDING = "steps_pending.json"
 
 return function(mod)
   mod.options:define({
@@ -40,7 +39,6 @@ return function(mod)
     { key = "gifts", label = "STEP GIFTS", type = "toggle", default = false },
   })
 
-  local Json = require("src.link.Json")
   local Growth = require("src.pokemon.Growth")
   local Stats = require("src.pokemon.Stats")
   local game
@@ -99,22 +97,8 @@ return function(mod)
     bucket.lifetimeSteps = bucket.lifetimeSteps or 0
   end)
 
-  -- Bridge probe.  Three worlds: an engine with the native bridge
-  -- (love.system.syncHealthSteps is a function), one without (nil), and a
-  -- sandboxed engine (mods 2026-08+) where merely INDEXING love.system
-  -- raises.  pcall folds the third into "no bridge", so the mod is
-  -- cleanly dormant under the sandbox instead of erroring on every quiet
-  -- moment.  Upstream issue #1183 tracks the scoped seam (a
-  -- permission-gated steps event) that will re-light sync there.
-  local function bridge()
-    local ok, fn = pcall(function()
-      return love.system and love.system.syncHealthSteps
-    end)
-    return (ok and fn) or nil
-  end
-
   local function active()
-    return bridge() ~= nil and mod.options:get("enabled")
+    return mod.steps:available() and mod.options:get("enabled")
   end
 
   -- Ask the native side to refresh steps_pending.json.  Async: results are
@@ -142,8 +126,7 @@ return function(mod)
     local dt = lastSyncRequest and t - lastSyncRequest
     if not force and dt and dt >= 0 and dt < SYNC_COOLDOWN then return end
     lastSyncRequest = t
-    local sync = bridge()
-    if sync then sync() end
+    mod.steps:sync()
   end
 
   -- Add EXP to one mon, bumping levels with the engine's own stat math
@@ -329,16 +312,13 @@ return function(mod)
 
   local function consume()
     if not (game and active()) then return end
-    if not love.filesystem.getInfo(PENDING, "file") then return end
-    -- Not a quiet overworld moment: keep the file, retry on the next
-    -- event (map.entered fires with via="boot" right as a continued save
-    -- lands in the overworld, so an app-open credit shows immediately).
+    -- Not a quiet overworld moment: don't poll yet -- an unconsumed
+    -- delivery waits engine-side, and the next event retries
+    -- (map.entered fires with via="boot" right as a continued save lands
+    -- in the overworld, so an app-open credit shows immediately).
     if not presentable() then return end
-    local raw = love.filesystem.read(PENDING)
-    if not raw then return end
-    local decoded = Json.decode(raw)
-    local steps = decoded and tonumber(decoded.steps) or 0
-    love.filesystem.remove(PENDING)
+    local walk = mod.steps:poll()
+    local steps = walk and tonumber(walk.steps) or 0
     if steps <= 0 then return end
 
     -- Lifetime steps accrue whenever SYNC STEPS is on: the gift journey

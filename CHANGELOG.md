@@ -3,6 +3,28 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-08-13
+
+### Added
+
+- **Step sync on sandboxed engines.** The engine grew a permission-gated
+  steps API (`mod.steps`, RFC 0009 — proposed in
+  [#1186](https://github.com/bryanthaboi/gen1recomp/issues/1186), merged
+  in [#1226](https://github.com/bryanthaboi/gen1recomp/pull/1226)), and
+  the mod now syncs through it: the manifest declares the `steps`
+  permission (visible in the mod manager), the engine owns the pending
+  file, and the mod only ever sees `{ steps, from, to }`. Behavior is
+  otherwise identical — same throttle, same quiet-moment credits, same
+  guardrails.
+
+### Changed
+
+- **Requires the 2026-08 sandbox engine release or later.** Older
+  engines don't know the `steps` permission and refuse the manifest —
+  install [v1.0.1](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases/tag/v1.0.1)
+  there instead (Gen 1 + Gold support, sync included on pre-sandbox
+  builds).
+
 ## [1.0.1] - 2026-08-12
 
 ### Fixed
