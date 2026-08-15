@@ -117,6 +117,18 @@ return function(mod)
   -- appears the moment the option is enabled.
   local SYNC_COOLDOWN = 30 -- seconds; far beyond any native query's lifetime
   local lastSyncRequest
+  -- Step insurance (v1.2.0).  A delivery is drained from the engine the
+  -- moment poll() returns it, but the credit lands in mod.save -- the
+  -- in-memory game save -- which is only durable once the player SAVEs.
+  -- The ledger closes that hole: a mod.storage record (synchronously
+  -- durable, per save slot) shadows what lifetimeSteps must be after
+  -- every applied credit.  Loading a save that predates a credit leaves
+  -- the shadow ahead of the save's counter; the difference is exactly
+  -- the unsaved steps, staged here and re-credited through the normal
+  -- flow at the next quiet moment -- EXP, watts, streaks and gift
+  -- milestones all re-derive.
+  local pendingRecredit = 0
+  local ledgerWarned = false
   local function requestSync(force)
     if not active() then return end
     local t = now()
@@ -310,6 +322,48 @@ return function(mod)
     nextEvolution()
   end
 
+  -- The durable shadow of lifetimeSteps, or nil when storage cannot
+  -- serve this game (fixture data, an engine without mod.storage's
+  -- backing, disk trouble).  Silent on every failure code: the ledger is
+  -- insurance, never a gate.
+  local function readLedger()
+    local value = mod.storage:read(game, "ledger")
+    return type(value) == "table" and tonumber(value.lifetimeSteps) or nil
+  end
+
+  -- Advance the shadow by the newly polled steps, BEFORE any state
+  -- mutation.  The max() is load-bearing: on every CONTINUE the boot
+  -- map.entered fires before save.loaded, so a credit can run while the
+  -- ledger still holds an un-reconciled surplus (S > L, pendingRecredit
+  -- not yet computed) -- taking L + P there would regress the shadow
+  -- and destroy the very steps it protects.  When reconcile HAS run,
+  -- S == L + P and this is exactly S + w.
+  local function bankLedger(w)
+    local base = math.max(readLedger() or 0,
+                          mod.save:get("lifetimeSteps", 0) + pendingRecredit)
+    local ok, code, message = mod.storage:write(game, "ledger",
+      { format = 1, lifetimeSteps = base + w })
+    if not ok and not ledgerWarned then
+      ledgerWarned = true
+      mod.log:warn("step ledger unavailable (%s); credits fall back to "
+                   .. "save-with-game behavior: %s",
+                   tostring(code), tostring(message))
+    end
+  end
+
+  -- The shadow minus the (possibly rolled-back) save counter is exactly
+  -- the applied-but-never-saved steps.  Always an ASSIGNMENT: a stale
+  -- pendingRecredit surviving into a save that already contains those
+  -- steps is the one double-credit hole, and reset-on-failure closes it.
+  local function reconcile()
+    pendingRecredit = 0
+    if not (game and active()) then return end
+    local shadow = readLedger()
+    if not shadow then return end
+    local missing = shadow - mod.save:get("lifetimeSteps", 0)
+    if missing > 0 then pendingRecredit = missing end
+  end
+
   local function consume()
     if not (game and active()) then return end
     -- Not a quiet overworld moment: don't poll yet -- an unconsumed
@@ -318,8 +372,15 @@ return function(mod)
     -- in the overworld, so an app-open credit shows immediately).
     if not presentable() then return end
     local walk = mod.steps:poll()
-    local steps = walk and tonumber(walk.steps) or 0
+    local w = walk and tonumber(walk.steps) or 0
+    local recovered = pendingRecredit
+    local steps = w + recovered
     if steps <= 0 then return end
+    pendingRecredit = 0
+    -- bank before ANY mutation: a crash between here and the save's next
+    -- write is recovered from the ledger on the next load.  Recovered
+    -- steps are already in the shadow, so a pure recovery writes nothing.
+    if w > 0 then bankLedger(w) end
 
     -- Lifetime steps accrue whenever SYNC STEPS is on: the gift journey
     -- reads it later, so a player who enables STEP GIFTS months in starts
@@ -411,6 +472,11 @@ return function(mod)
       table.insert(pages, 1, gained)
     end
     table.insert(pages, 1, Strings("You walked\n%d steps!", steps))
+    if recovered > 0 then
+      -- an unsaved credit came back after a reload; say so, or the
+      -- player just sees steps they thought were gone reappear
+      table.insert(pages, 1, Strings("Recovered\n%d steps!", recovered))
+    end
     local TextBox = require("src.render.TextBox")
     game.stack:push(TextBox.new(game, table.concat(pages, "\f"), function()
       runLearnQueue(learnQueue, data, function()
@@ -512,7 +578,18 @@ return function(mod)
     requestSync()
   end)
   mod.events:on("save.loaded", function()
+    -- fires after loader.modSave swaps to the loaded (possibly older)
+    -- save, which is exactly when the ledger comparison is meaningful
+    reconcile()
     requestSync()
+    consume()
+  end)
+  -- Checkpoint restores rewind mod.save silently (adoptSave without any
+  -- save.loaded), so they need the same reconciliation.  Gold has no
+  -- checkpoint-restore path yet; this handler is simply inert there.
+  mod.events:on("checkpoint.restored", function(p)
+    if p and p.game then game = p.game end
+    reconcile()
     consume()
   end)
   mod.events:on("save.created", function() requestSync() end)

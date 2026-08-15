@@ -3,6 +3,31 @@
 All notable changes to this mod are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-08-15
+
+### Added
+
+- **Step insurance.** Every credit is journaled to the engine's durable
+  per-playthrough mod storage *before* it is applied. Quitting without
+  an in-game SAVE no longer loses steps: the next load detects the
+  shortfall and replays it through the normal flow — EXP, watts,
+  streaks, and gift milestones included — announced with a
+  "Recovered N steps!" page. (Fixes the lost-100,000-step-milestone
+  report from Discord.)
+- Recovery also runs after a checkpoint restore, which rewinds mod
+  state without a normal save load.
+
+### Notes
+
+- Each save slot has its own journal, so recovery never crosses slots
+  or generations.
+- Recovered steps count toward the daily goal on the day they are
+  recovered, not the days they were walked.
+- The journal is device-local: copying a save file to another device
+  cannot carry that device's unsaved steps with it.
+- If mod storage is ever unavailable, the mod logs one warning and
+  behaves exactly like 1.1.0. Engine requirement unchanged (v0.1.84+).
+
 ## [1.1.0] - 2026-08-13
 
 ### Added

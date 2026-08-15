@@ -168,9 +168,11 @@ retroactively.
 | 200,000 | Aerodactyl Lv.30 | Larvitar Lv.30 |
 | 300,000 | Mew Lv.5 | Celebi Lv.5 |
 
-Watts, streaks, and journey progress live inside your game save: they
-travel with it, and — like the EXP credit itself — anything banked since
-your last in-game SAVE is lost if you quit without saving.
+Watts, streaks, and journey progress live inside your game save and
+travel with it. As of v1.2.0 they are also **insured**: every credit is
+journaled outside the save before it applies, so if you quit without an
+in-game SAVE, the next load shows "Recovered N steps!" and replays the
+lost credit — EXP, watts, streaks, and gift milestones included.
 
 ## Requirements
 
@@ -228,15 +230,15 @@ Open an issue here if you're porting the bridge to another platform.
 
 ## Known limitations
 
-- **Engines with the 2026-08 mod sandbox**: the sandbox blocks the
-  seams the native step bridge lives behind, so step sync is paused
-  there — the mod stays cleanly dormant (the watt economy still runs on
-  banked steps). A scoped replacement API is tracked in
-  [bryanthaboi/gen1recomp#1183](https://github.com/bryanthaboi/gen1recomp/issues/1183)
-  and a release restoring sync will follow it.
 - Steps sync on launch/activation; no background delivery yet.
-- Progress banked since your last in-game SAVE (EXP, watts, streaks) is
-  lost if you quit without saving — the game has no autosave.
+- Steps credit into **whichever game you open first**: the device
+  counts one stream of steps, and the save you're playing when a sync
+  lands is the one that banks them — other versions and slots don't see
+  that walk.
+- The step journal (v1.2.0's insurance) is device-local and per save
+  slot: recovered steps count toward the daily goal on the day they're
+  recovered, and copying a save file to another device can't carry that
+  device's unsaved steps with it.
 
 ## Developing
 

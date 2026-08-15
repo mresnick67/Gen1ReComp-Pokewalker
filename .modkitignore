@@ -1,3 +1,4 @@
 tests/pokewalker_test.lua
 tests/pokewalker_gen2_test.lua
 tests/pokewalker_dormancy_test.lua
+tests/pokewalker_ledger_test.lua
