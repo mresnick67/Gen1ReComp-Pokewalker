@@ -6,19 +6,24 @@ Your real-world steps become EXP for your Pokémon party — the HeartGold/
 SoulSilver Pokéwalker, except it's the phone already in your pocket.
 
 A mod for [gen1recomp](https://github.com/bryanthaboi/gen1recomp)
-(the Gen 1 Recompilation Project). The native step bridges this mod
-relies on are **part of the main project** and ship in the official
-releases: **v0.1.45 or later on iOS**, **v0.1.51 or later on
-Android**. No patched or sideloaded custom builds needed — official
-gen1recomp builds run this mod as-is. It's opt-in, data-safe, and
-dormant on any platform without a bridge (desktop included — see
-[Requirements](#requirements)).
+(the Gen 1 Recompilation Project). Everything it needs — the native
+step bridges and the sandbox's permission-gated steps API — is **part
+of the main project** and ships in the official releases: the current
+mod needs **gen1recomp v0.1.84 or later** on iOS or Android (older
+engines: see [Requirements](#requirements) for the matching mod
+version). No patched or sideloaded custom builds needed. It's opt-in,
+data-safe, and dormant on any platform without a step bridge (desktop
+included).
 
-**Gen 2 ready:** as of v1.0.0 the mod declares and supports the
-project's **Gold (Gen 2) beta** — on a Gold save the radar pools,
-milestone gifts, and stone shop go Johto ([details below](#on-gold-gen-2)),
-while Gen 1 saves keep every original table. Gold needs gen1recomp
-**v0.1.78 or later**.
+**Works on Red, Blue, Yellow, and the Gold (Gen 2) beta** — on a Gold
+save the radar pools, milestone gifts, and stone shop go Johto
+([details below](#on-gold-gen-2)), while Gen 1 saves keep every
+original table.
+
+**Your steps are insured** (v1.2.0): every credit is journaled outside
+the game save before it applies, so quitting without saving can't lose
+steps — the next load shows "Recovered N steps!" and replays the
+credit, milestone gifts included.
 
 ## Install
 
@@ -176,20 +181,21 @@ lost credit — EXP, watts, streaks, and gift milestones included.
 
 ## Requirements
 
-The Lua mod is platform-neutral, but it feeds on a **native step
-bridge**, part of mainline gen1recomp:
+Match the mod version to your gen1recomp release:
 
-- **Mod v1.1.0 (this version)** needs the engine's **2026-08 sandbox
-  release or later** — it syncs through the sandbox's permission-gated
-  `mod.steps` API (the `steps` permission you see in the mod manager).
-  On older engines install
-  [v1.0.1](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases/tag/v1.0.1):
-  - **iOS** — official release **v0.1.45 or later**.
-  - **Android** — official release **v0.1.51 or later**.
-  - **Gold (Gen 2) saves** — official release **v0.1.78 or later**.
+| Your gen1recomp | Install | Notes |
+|---|---|---|
+| **v0.1.84 or later** | **latest mod release** (v1.2.0+) | current line: syncs through the engine's permission-gated `mod.steps` API (the `steps` permission you see in the mod manager) and includes step insurance |
+| v0.1.78 – v0.1.83 | [v1.0.1](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases/tag/v1.0.1) | pre-sandbox engines; includes Gen 2 (Gold) support |
+| iOS v0.1.45+ / Android v0.1.51+ | [v1.0.1](https://github.com/mresnick67/Gen1ReComp-Pokewalker/releases/tag/v1.0.1) | the oldest releases with the native step bridges; Gen 1 only below v0.1.78 |
 
-Without a bridge (desktop builds, older releases) the mod loads and
-stays dormant — safe to install anywhere.
+The split exists because engines below v0.1.84 don't recognise the
+`steps` permission and refuse the current mod's manifest, while the
+sandbox in v0.1.84+ removed the seams v1.0.x synced through — each line
+works only on its own side of that release.
+
+Without a step bridge (desktop builds) the mod loads and stays
+dormant — safe to install anywhere.
 
 **Why a bridge at all?** A mod alone genuinely cannot do this. Mods are
 Lua inside the LÖVE runtime: there is no sensor or HealthKit API exposed
@@ -201,7 +207,7 @@ it.
 
 ### The bridge contract (for porters)
 
-Any platform can light this mod up by providing:
+Any platform can light this mod up by providing the **native half**:
 
 - `love.system.syncHealthSteps()` → `boolean` — kick off an async step
   query (requesting OS permission on first use). On completion, write
@@ -213,7 +219,14 @@ Any platform can light this mod up by providing:
 
   Count steps from a persisted anchor (last successful sync) so a walk is
   never delivered twice, and **merge** with an unconsumed pending file
-  rather than overwriting it. The mod consumes and deletes the file.
+  rather than overwriting it.
+
+The engine side is already generic: since v0.1.84 the mod sandbox owns
+both seams — it forwards `mod.steps:sync()` to that native function and
+consumes the pending file itself, handing permissioned mods only the
+step count and time range (`mod.steps:poll()`; RFC 0009, added in
+[#1226](https://github.com/bryanthaboi/gen1recomp/pull/1226)). A new
+platform only implements the native half and every steps mod works.
 
 Two reference implementations live in mainline gen1recomp:
 
@@ -246,8 +259,10 @@ From a gen1recomp checkout with this mod at `mods/pokewalker` and an
 imported data cache:
 
 ```sh
-luajit mods/pokewalker/tests/pokewalker_test.lua
-luajit mods/pokewalker/tests/pokewalker_gen2_test.lua
+luajit mods/pokewalker/tests/pokewalker_test.lua        # core suite
+luajit mods/pokewalker/tests/pokewalker_gen2_test.lua   # Gold behavior
+luajit mods/pokewalker/tests/pokewalker_dormancy_test.lua  # no-bridge builds
+luajit mods/pokewalker/tests/pokewalker_ledger_test.lua    # step insurance
 python3 tools/modkit.py gen2check mods/pokewalker --strict --notes
 python3 tools/modkit.py validate mods/pokewalker --base imported
 python3 tools/modkit.py pack mods/pokewalker -o pokewalker-<version>.zip
@@ -260,14 +275,16 @@ only.)
 
 ## Source & provenance
 
-This repo is the mod's canonical home. The native bridges it depends on
+This repo is the mod's canonical home. The engine pieces it depends on
 were contributed to
 [bryanthaboi/gen1recomp](https://github.com/bryanthaboi/gen1recomp)
 directly: iOS support in
 [#452](https://github.com/bryanthaboi/gen1recomp/pull/452) (merged
 2026-07-30), the Android step bridge in
 [#489](https://github.com/bryanthaboi/gen1recomp/pull/489) (merged
-2026-08-01), with
+2026-08-01), and the sandbox's permission-gated `mod.steps` API in
+[#1226](https://github.com/bryanthaboi/gen1recomp/pull/1226) (merged
+2026-08-13, RFC 0009), with
 [#464](https://github.com/bryanthaboi/gen1recomp/pull/464) moving the
 mod itself out of the upstream tree and into this repo. The historical
 [`pokewalker-bridges`](https://github.com/mresnick67/gen1recomp/tree/pokewalker-bridges)
